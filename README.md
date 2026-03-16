@@ -344,9 +344,3 @@ python -c "import os; print(os.getenv('DB_HOST'))"
 ## Licencia
 
 Propiedad de la Institución. Todos los derechos reservados.
-
-## Soporte
-
-Para soporte técnico, contactar al equipo de desarrollo:
-- Email: sistemas@institucion.gov.py
-- Teléfono: (595) 21 123 456
