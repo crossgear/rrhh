@@ -1,0 +1,20 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Error del Servidor - Sistema RRHH{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-1 text-danger">500</h1>
+    <h3 class="mb-4">Error interno del servidor</h3>
+    <p class="lead mb-4">
+        Ha ocurrido un error inesperado. Nuestro equipo ha sido notificado.
+    </p>
+    <div class="alert alert-info text-start">
+        <strong>Información para administradores:</strong><br>
+        Revise los logs en <code>logs/rrhh.log</code> para más detalles.
+    </div>
+    <a href="{% url 'dashboard-index' %}" class="btn btn-primary btn-lg">
+        <i class="bi bi-arrow-left"></i> Volver al Dashboard
+    </a>
+</div>
+{% endblock %}

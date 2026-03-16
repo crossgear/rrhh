@@ -1,0 +1,72 @@
+# Django
+*.log
+*.pot
+*.sqlite3
+local_settings.py
+db.sqlite3
+media/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Django REST Framework
+api/
+api-key*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# PostgreSQL
+*.dump
+
+# GDAL
+.gdal/
+
+# Static files
+staticfiles/
+
+# Coverage
+htmlcov/
+.coverage
+.pytest_cache/
+
+# Node (si se usa frontend separado)
+node_modules/
+npm-debug.log*
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+
+# Logs
+logs/
+*.log
+
+# Backup files
+*.bak
+*.backup
+
+# Project specific
+secrets.js
+*.key
+*.pem

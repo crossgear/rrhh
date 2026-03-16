@@ -1,0 +1,32 @@
+# Requirements Base - Sistema RRHH
+# Python 3.11+
+
+# Django core
+Django==5.0.6
+
+# Django REST Framework
+djangorestframework==3.15.1
+
+# GIS Support
+django.contrib.gis  # Ya incluido en Django
+
+# Additional GIS packages
+rest-framework-gis==1.0
+
+# CORS
+django-cors-headers==4.3.1
+
+# Bootstrap 5 integration
+django-bootstrap5==23.4
+
+# Environment variables
+python-dotenv==1.0.1
+
+# Image processing
+Pillow==10.3.0
+
+# PostgreSQL driver
+psycopg2-binary==2.9.9
+
+# Simple JWT (opcional para token auth)
+djangorestframework-simplejwt==5.3.1

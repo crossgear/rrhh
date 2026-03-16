@@ -1,0 +1,22 @@
+-r base.txt
+
+# Debug toolbar
+django-debug-toolbar==4.2.0
+
+# Django extensions
+django-extensions==3.2.3
+
+# IPython shell
+ipython==8.24.0
+
+# Django filters (búsqueda/filtrado)
+django-filter==23.5
+
+# Linting
+flake8==7.0.0
+black==24.3.0
+
+# Testing
+pytest==8.0.0
+pytest-django==4.7.0
+factory-boy==3.3.0

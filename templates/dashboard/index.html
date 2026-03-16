@@ -1,0 +1,233 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.css">
+{% endblock %}
+
+{% block content %}
+<h2 class="mb-4"><i class="bi bi-speedometer2"></i> Dashboard</h2>
+
+<!-- Tarjetas superiores -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-white-50">Total Personas</small>
+                        <h2 class="mb-0">{{ total_personas }}</h2>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-people"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-white-50">Personas Activas</small>
+                        <h2 class="mb-0">{{ personas_activas }}</h2>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-person-check"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-dark h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-dark-50">Empleados</small>
+                        <h2 class="mb-0">{{ total_empleados }}</h2>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-briefcase"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-white-50">Con Postgrado</small>
+                        <h2 class="mb-0">{{ con_postgrado }}</h2>
+                    </div>
+                    <div class="fs-1 opacity-50"><i class="bi bi-award"></i></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <!-- Gráfico por Vínculo -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-diagram-3"></i> Funcionarios por Tipo de Vínculo</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chart-vinculo" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráfico por Nivel Académico -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-mortarboard"></i> Funcionarios por Nivel Académico</h5>
+            </div>
+            <div class="card-body">
+                <canvas id="chart-nivel" width="400" height="300"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Ciudades -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Top 10 Ciudades</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Ciudad</th>
+                                <th class="text-end">Cantidad</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in por_ciudad %}
+                            <tr>
+                                <td>{{ item.CIUDAD }}</td>
+                                <td class="text-end"><span class="badge bg-primary">{{ item.total }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center text-muted">No hay datos</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Top Dependencias -->
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-light">
+                <h5 class="mb-0"><i class="bi bi-building"></i> Top 5 Dependencias</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Dependencia</th>
+                                <th class="text-end">Personal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in top_dependencias %}
+                            <tr>
+                                <td>{{ item.DEPENDENCIA }}</td>
+                                <td class="text-end"><span class="badge bg-success">{{ item.total }}</span></td>
+                            </tr>
+                            {% empty %}
+                            <tr><td colspan="2" class="text-center text-muted">No hay datos</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Gráfico por tipo de vínculo
+    const ctxVinculo = document.getElementById('chart-vinculo').getContext('2d');
+    const vínculoData = {
+        labels: [
+            {% for item in por_vinculo %}
+                '{{ item.TIPO_VINCULO|title }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Cantidad',
+            data: [
+                {% for item in por_vinculo %}
+                    {{ item.total }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            backgroundColor: [
+                '#0d6efd', '#198754', '#ffc107', '#dc3545', '#6f42c1'
+            ],
+            borderWidth: 1
+        }]
+    };
+    new Chart(ctxVinculo, {
+        type: 'pie',
+        data: vínculoData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            }
+        }
+    });
+
+    // Gráfico por nivel académico
+    const ctxNivel = document.getElementById('chart-nivel').getContext('2d');
+    const nivelData = {
+        labels: [
+            {% for item in por_nivel_academico %}
+                '{{ item.NIVEL_ACADEMICO|title }}'{% if not forloop.last %},{% endif %}
+            {% endfor %}
+        ],
+        datasets: [{
+            label: 'Cantidad',
+            data: [
+                {% for item in por_nivel_academico %}
+                    {{ item.total }}{% if not forloop.last %},{% endif %}
+                {% endfor %}
+            ],
+            backgroundColor: [
+                '#20c997', '#fd7e14', '#6610f2', '#e83e8c', '#6f42c1'
+            ],
+            borderWidth: 1
+        }]
+    };
+    new Chart(ctxNivel, {
+        type: 'bar',
+        data: nivelData,
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: 'y',
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { beginAtZero: true }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

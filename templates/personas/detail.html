@@ -1,0 +1,176 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ persona.nombre_completo }} - Ficha Personal{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-person-badge"></i> Ficha Personal</h2>
+    <div>
+        <a href="{% url 'persona-list' %}" class="btn btn-secondary me-2">
+            <i class="bi bi-arrow-left"></i> Volver
+        </a>
+        {% if user.es_rrhh %}
+        <a href="{% url 'persona-update' persona.id %}" class="btn btn-warning">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row">
+    <!-- Información Personal -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-person"></i> Datos Personales</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-borderless">
+                    <tr>
+                        <th style="width: 150px;">CI:</th>
+                        <td><strong>{{ persona.CI_NUMERO }}</strong></td>
+                    </tr>
+                    <tr>
+                        <th>Nombre:</th>
+                        <td>{{ persona.nombre_completo }}</td>
+                    </tr>
+                    <tr>
+                        <th>Fecha Nac.:</th>
+                        <td>{{ persona.FECHA_NACIMIENTO|date:"d/m/Y" }} ({{ persona.edad }} años)</td>
+                    </tr>
+                    <tr>
+                        <th>Estado Civil:</th>
+                        <td>{{ persona.get_ESTADO_CIVIL_display }}</td>
+                    </tr>
+                    <tr>
+                        <th>Teléfono:</th>
+                        <td>{{ persona.TELEFONO|default:"No registrado" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Email:</th>
+                        <td>{{ persona.EMAIL|default:"No registrado" }}</td>
+                    </tr>
+                    <tr>
+                        <th>Estado:</th>
+                        <td>
+                            {% if persona.ACTIVO %}
+                                <span class="badge bg-success">Activo</span>
+                            {% else %}
+                                <span class="badge bg-danger">Inactivo</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Domicilio Actual -->
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-geo-alt"></i> Domicilio Actual</h5>
+            </div>
+            <div class="card-body">
+                {% with domicilio=persona.domicilios.first %}
+                    {% if domicilio %}
+                        <p><strong>Dirección:</strong><br>{{ domicilio.DIRECCION }}</p>
+                        {% if domicilio.BARRIO %}
+                            <p><strong>Barrio:</strong> {{ domicilio.BARRIO }}</p>
+                        {% endif %}
+                        <p><strong>Ciudad:</strong> {{ domicilio.CIUDAD }}</p>
+                        {% if domicilio.LATITUD and domicilio.LONGITUD %}
+                            <p><strong>Coordenadas:</strong> {{ domicilio.LATITUD }}, {{ domicilio.LONGITUD }}</p>
+                        {% endif %}
+                        <small class="text-muted">
+                            Registrado: {{ domicilio.FECHA_REGISTRO|date:"d/m/Y H:i" }}
+                        </small>
+                    {% else %}
+                        <p class="text-muted">No tiene domicilio registrado.</p>
+                    {% endif %}
+                {% endwith %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Datos Laborales -->
+<div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
+            <div class="card-header bg-warning text-dark">
+                <h5 class="mb-0"><i class="bi bi-briefcase"></i> Datos Laborales</h5>
+            </div>
+            <div class="card-body">
+                {% if persona.datos_laborales %}
+                    <div class="row">
+                        <div class="col-md-4">
+                            <p><strong>Tipo de Vínculo:</strong><br>{{ persona.datos_laborales.get_TIPO_VINCULO_display }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Cargo:</strong><br>{{ persona.datos_laborales.CARGO }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Dependencia:</strong><br>{{ persona.datos_laborales.DEPENDENCIA }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Salario:</strong><br>Gs. {{ persona.datos_laborales.SALARIO|floatformat:0 }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Fecha Ingreso:</strong><br>{{ persona.datos_laborales.FECHA_INGRESO|date:"d/m/Y" }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <p><strong>Estado:</strong><br>
+                                {% if persona.datos_laborales.ACTIVO %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No tiene datos laborales registrados.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Observaciones -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header bg-info text-white">
+                <h5 class="mb-0"><i class="bi bi-chat-left-text"></i> Observaciones</h5>
+            </div>
+            <div class="card-body">
+                {% if user.es_rrhh %}
+                <form method="post" action="{% url 'observacion-crear' %}">
+                    {% csrf_token %}
+                    <input type="hidden" name="persona" value="{{ persona.id }}">
+                    <div class="mb-3">
+                        <textarea name="DESCRIPCION" class="form-control" rows="3"
+                                  placeholder="Agregar nueva observación..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-sm btn-info">Agregar Observación</button>
+                </form>
+                <hr>
+                {% endif %}
+
+                {% for obs in persona.observaciones.all %}
+                    <div class="border-bottom pb-2 mb-2">
+                        <small class="text-muted">
+                            <i class="bi bi-person"></i> {{ obs.usuario_creador.get_full_name|default:obs.usuario_creador.username }}
+                            - {{ obs.FECHA|date:"d/m/Y H:i" }}
+                        </small>
+                        <p class="mb-0 mt-1">{{ obs.DESCRIPCION }}</p>
+                    </div>
+                {% empty %}
+                    <p class="text-muted">No hay observaciones registradas.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.env
+.env.local
+.venv
+
+# Django
+*.log
+local_settings.py
+staticfiles/
+media/
+db.sqlite3
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Git
+.git/
+.gitignore
+
+# Documentation build
+docs/_build/
+*.md
+
+# Test coverage
+htmlcov/
+.coverage
+pytest_cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node (if any)
+node_modules/
+npm-debug.log
+
+# Misc
+*.bak
+*.backup
+*.tmp
+*.temp
+logs/
+secrets.*
+*.key
+*.pem

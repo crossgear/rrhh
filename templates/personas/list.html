@@ -1,0 +1,137 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Lista de Personas{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="bi bi-people"></i> Gestión de Personas</h2>
+    <div>
+        <a href="{% url 'persona-mapa' %}" class="btn btn-success me-2">
+            <i class="bi bi-geo-alt"></i> Ver Mapa
+        </a>
+        {% if user.es_rrhh %}
+        <a href="{% url 'persona-create' %}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> Nueva Persona
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Buscador -->
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="get" class="row g-3">
+            <div class="col-md-4">
+                <input type="text" name="search" class="form-control" placeholder="Buscar por CI, nombre, apellido..."
+                       value="{{ request.GET.search }}">
+            </div>
+            <div class="col-md-3">
+                <select name="ESTADO_CIVIL" class="form-select">
+                    <option value="">-- Estado Civil --</option>
+                    {% for value, label in estado_civil_choices %}
+                        <option value="{{ value }}" {% if request.GET.ESTADO_CIVIL == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-3">
+                <select name="ACTIVO" class="form-select">
+                    <option value="">-- Estado --</option>
+                    <option value="true" {% if request.GET.ACTIVO == 'true' %}selected{% endif %}>Activo</option>
+                    <option value="false" {% if request.GET.ACTIVO == 'false' %}selected{% endif %}>Inactivo</option>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary w-100">Buscar</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Tabla -->
+<div class="card shadow-sm">
+    <div class="card-body">
+        {% if object_list %}
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>CI</th>
+                            <th>Nombre Completo</th>
+                            <th>F.Nacimiento</th>
+                            <th>Edad</th>
+                            <th>Estado Civil</th>
+                            <th>Teléfono</th>
+                            <th>Estado</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for persona in object_list %}
+                        <tr>
+                            <td><strong>{{ persona.CI_NUMERO }}</strong></td>
+                            <td>{{ persona.nombre_completo }}</td>
+                            <td>{{ persona.FECHA_NACIMIENTO|date:"d/m/Y" }}</td>
+                            <td>{{ persona.edad }}</td>
+                            <td>{{ persona.get_ESTADO_CIVIL_display }}</td>
+                            <td>{{ persona.TELEFONO|default:"-" }}</td>
+                            <td>
+                                {% if persona.ACTIVO %}
+                                    <span class="badge bg-success">Activo</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Inactivo</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'persona-detail' persona.id %}" class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if user.es_rrhh %}
+                                <a href="{% url 'persona-update' persona.id %}" class="btn btn-sm btn-outline-warning">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Paginación -->
+            {% if is_paginated %}
+            <nav aria-label="Paginación">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{{ request.GET.search|add_str:'&search=' }}{{ request.GET.ACTIVO|add_str:'&ACTIVO=' }}{{ request.GET.ESTADO_CIVIL|add_str:'&ESTADO_CIVIL=' }}">Anterior</a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item"><a class="page-link" href="?page={{ num }}{{ request.GET.search|add_str:'&search=' }}{{ request.GET.ACTIVO|add_str:'&ACTIVO=' }}{{ request.GET.ESTADO_CIVIL|add_str:'&ESTADO_CIVIL=' }}">{{ num }}</a></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{{ request.GET.search|add_str:'&search=' }}{{ request.GET.ACTIVO|add_str:'&ACTIVO=' }}{{ request.GET.ESTADO_CIVIL|add_str:'&ESTADO_CIVIL=' }}">Siguiente</a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+
+        {% else %}
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No se encontraron personas.
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

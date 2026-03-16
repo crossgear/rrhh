@@ -1,0 +1,53 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Inicio de Sesión - Sistema RRHH{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 100px);">
+    <div class="card shadow-lg" style="width: 400px; max-width: 100%;">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h3 class="mb-0"><i class="bi bi-building"></i><br>Sistema RRHH</h3>
+            <small class="text-light">Institucional</small>
+        </div>
+        <div class="card-body p-4">
+            <h5 class="text-center mb-4">Inicio de Sesión</h5>
+            <form method="post">
+                {% csrf_token %}
+                <div class="mb-3">
+                    <label for="username" class="form-label">Usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" name="username" id="username"
+                               placeholder="Ingrese su usuario" required autofocus>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" name="password" id="password"
+                               placeholder="Ingrese su contraseña" required>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-box-arrow-in-right"></i> Ingresar
+                    </button>
+                </div>
+                {% if form.errors %}
+                    <div class="alert alert-danger mt-3">
+                        <i class="bi bi-exclamation-triangle"></i>
+                        Usuario o contraseña incorrectos
+                    </div>
+                {% endif %}
+            </form>
+            <hr class="my-3">
+            <small class="text-muted text-center d-block">
+                Sistema de Gestión Integral de Fichas Personales<br>
+                v1.0 - 2025
+            </small>
+        </div>
+    </div>
+</div>
+{% endblock %}
