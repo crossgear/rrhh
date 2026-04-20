@@ -5,6 +5,7 @@
 local_settings.py
 db.sqlite3
 media/
+migrations/
 
 # Python
 __pycache__/
@@ -16,6 +17,7 @@ venv/
 env/
 ENV/
 .env
+.\.env.example
 .env.local
 .env.development.local
 .env.test.local

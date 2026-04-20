@@ -1,14 +1,17 @@
+
 """
 Modelo Persona - Nodo principal del sistema
 Todas las fichas laborales y académicas se vinculan a una Persona.
 """
 from django.db import models
+from django.conf import settings
 
 
 class Persona(models.Model):
     """
     Modelo principal que contiene la información personal básica.
-    Se relaciona con otros modelos mediante ForeignKey/OneToOne.
+    Además incluye un JSON para almacenar la ficha ampliada que reemplaza el
+    formulario en papel, manteniendo compatibilidad con la estructura original.
     """
     CI_NUMERO = models.CharField(
         'Número de CI',
@@ -35,8 +38,28 @@ class Persona(models.Model):
         default='SOLTERO'
     )
 
+    USUARIO = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='persona',
+        verbose_name='Usuario vinculado'
+    )
     TELEFONO = models.CharField('Teléfono', max_length=20, blank=True)
     EMAIL = models.EmailField('Correo electrónico', blank=True)
+    FOTO_CARNET = models.ImageField(
+        'Foto carnet',
+        upload_to='fotos_carnet/',
+        blank=True,
+        null=True,
+    )
+    FICHA_EXTRA = models.JSONField(
+        'Datos ampliados de la ficha',
+        default=dict,
+        blank=True,
+        help_text='Campos complementarios de la ficha web institucional'
+    )
 
     ACTIVO = models.BooleanField('Activo', default=True)
     FECHA_CREACION = models.DateTimeField('Fecha de creación', auto_now_add=True)
@@ -57,12 +80,10 @@ class Persona(models.Model):
 
     @property
     def nombre_completo(self):
-        """Retorna el nombre completo de la persona."""
         return f"{self.NOMBRES} {self.APELLIDOS}"
 
     @property
     def edad(self):
-        """Calcula la edad actual."""
         from datetime import date
         today = date.today()
         return today.year - self.FECHA_NACIMIENTO.year - (
@@ -71,10 +92,8 @@ class Persona(models.Model):
 
     @property
     def tiene_datos_laborales(self):
-        """Verifica si tiene datos laborales registrados."""
         return hasattr(self, 'datos_laborales') and self.datos_laborales is not None
 
     @property
     def tiene_datos_academicos(self):
-        """Verifica si tiene datos académicos registrados."""
         return hasattr(self, 'datos_academicos') and self.datos_academicos is not None

@@ -41,7 +41,7 @@ SECURE_HSTS_PRELOAD = True
 
 
 # Logging a archivo
-LOGGING['handlers']['file']['filename'] = '/var/log/rrhh/rrhh.log'
+# LOGGING['handlers']['file']['filename'] = '/var/log/rrhh/rrhh.log'
 LOGGING['root']['level'] = 'WARNING'
 
 

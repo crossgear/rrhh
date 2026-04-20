@@ -344,3 +344,27 @@ python -c "import os; print(os.getenv('DB_HOST'))"
 ## Licencia
 
 Propiedad de la Institución. Todos los derechos reservados.
+
+
+## Autenticación LDAP
+
+Este proyecto quedó preparado para autenticación contra Active Directory.
+
+Completar o revisar en `.env`:
+
+```env
+ENABLE_LDAP_AUTH=True
+AUTH_LDAP_SERVER_URI=ldap://192.168.1.218
+AUTH_LDAP_DOMAIN=dgsnc.local
+AUTH_LDAP_SEARCH_BASE=DC=dgsnc,DC=local
+AUTH_LDAP_BIND_DN=soporte@dgsnc.local
+AUTH_LDAP_BIND_PASSWORD=Asuncion25@
+```
+
+Luego ejecutar:
+
+```bash
+docker compose down
+docker compose build --no-cache
+docker compose up
+```

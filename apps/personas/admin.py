@@ -14,6 +14,7 @@ class PersonaAdmin(admin.ModelAdmin):
         'CI_NUMERO',
         'nombre_completo',
         'FECHA_NACIMIENTO',
+        'USUARIO',
         'edad',
         'ESTADO_CIVIL',
         'TELEFONO',
@@ -23,13 +24,13 @@ class PersonaAdmin(admin.ModelAdmin):
         'tiene_datos_academicos',
     )
     list_filter = ('ESTADO_CIVIL', 'ACTIVO', 'FECHA_CREACION')
-    search_fields = ('CI_NUMERO', 'NOMBRES', 'APELLIDOS', 'TELEFONO', 'EMAIL')
+    search_fields = ('CI_NUMERO', 'NOMBRES', 'APELLIDOS', 'TELEFONO', 'EMAIL', 'USUARIO__username', 'USUARIO__first_name', 'USUARIO__last_name')
     ordering = ('APELLIDOS', 'NOMBRES')
     readonly_fields = ('FECHA_CREACION', 'FECHA_ACTUALIZACION')
 
     fieldsets = (
         ('Datos Personales', {
-            'fields': ('CI_NUMERO', ('NOMBRES', 'APELLIDOS'), 'FECHA_NACIMIENTO', 'ESTADO_CIVIL')
+            'fields': ('USUARIO', 'CI_NUMERO', ('NOMBRES', 'APELLIDOS'), 'FECHA_NACIMIENTO', 'ESTADO_CIVIL')
         }),
         ('Contacto', {
             'fields': ('TELEFONO', 'EMAIL')

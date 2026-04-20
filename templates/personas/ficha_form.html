@@ -1,0 +1,556 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ titulo }}{% endblock %}
+{% block extra_css %}
+<style>
+    .map-card { border: 1px solid #dbe4f0; border-radius: 12px; overflow: hidden; }
+    .map-toolbar { background: #f8fafc; border-bottom: 1px solid #e5e7eb; padding: 12px; }
+    #croquis-map { height: 360px; width: 100%; }
+    .croquis-preview { border: 1px solid #dbe4f0; border-radius: 12px; background: #fff; padding: 12px; }
+    .croquis-preview img { width: 100%; border-radius: 10px; border: 1px solid #e5e7eb; min-height: 220px; object-fit: cover; background: #f8fafc; }
+    .croquis-badge { display: inline-flex; align-items: center; gap: 6px; background: #eef6ff; color: #1d4ed8; border: 1px solid #bfdbfe; border-radius: 999px; padding: 4px 10px; font-size: .84rem; }
+    .map-help { font-size: .9rem; color: #475569; }
+    .croquis-meta { font-size: .9rem; color: #475569; }
+    .laboral-block { transition: all .2s ease; }
+</style>
+{% endblock %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const radios = document.querySelectorAll('input[name="TIPO_VINCULO"]');
+    const blocks = {
+        'NOMBRADO': document.getElementById('bloque-nombrado'),
+        'CONTRATADO': document.getElementById('bloque-contratado'),
+        'PASANTIA': document.getElementById('bloque-pasantia'),
+        'PRACTICANTE': document.getElementById('bloque-practicante')
+    };
+    const decretoFields = ['id_NUMERO_DECRETO','id_FECHA_DECRETO'];
+    const resolFields = ['id_NUMERO_RESOLUCION','id_FECHA_RESOLUCION'];
+    const dgrpFields = ['id_NUMERO_DGRP','id_FECHA_DGRP'];
+
+    function setDisabled(ids, disabled) {
+        ids.forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.disabled = disabled;
+        });
+    }
+    function updateLaboralUI() {
+        const checked = document.querySelector('input[name="TIPO_VINCULO"]:checked');
+        const value = checked ? checked.value : '';
+        Object.entries(blocks).forEach(([key, block]) => {
+            if (!block) return;
+            block.classList.toggle('d-none', key !== value);
+        });
+        setDisabled(decretoFields, value !== 'NOMBRADO');
+        setDisabled(resolFields, value !== 'CONTRATADO');
+        setDisabled(dgrpFields, !['PASANTIA', 'PRACTICANTE'].includes(value));
+    }
+    radios.forEach(r => r.addEventListener('change', updateLaboralUI));
+    updateLaboralUI();
+});
+
+window.initCroquisMap = function initCroquisMap() {
+    const latInput = document.getElementById('id_LATITUD');
+    const lngInput = document.getElementById('id_LONGITUD');
+    const addrInput = document.getElementById('id_DOMICILIO_ACTUAL');
+    const barrioInput = document.getElementById('id_BARRIO');
+    const cityInput = document.getElementById('id_CIUDAD');
+    const croquisInput = document.getElementById('id_CROQUIS_REFERENCIA');
+    const searchInput = document.getElementById('map-search-input');
+    const searchBtn = document.getElementById('map-search-btn');
+    const previewImg = document.getElementById('croquis-preview-img');
+    const coordsText = document.getElementById('croquis-coords');
+    const statusBadge = document.getElementById('croquis-provider-badge');
+    const searchStatus = document.getElementById('croquis-search-status');
+    if (!latInput || !lngInput) return;
+
+    const initialLat = parseFloat(latInput.value || '-25.2637');
+    const initialLng = parseFloat(lngInput.value || '-57.5759');
+    const hasInitial = !!(latInput.value && lngInput.value);
+    const mapContainer = document.getElementById('croquis-map');
+    const googleKey = mapContainer.dataset.googleMapsKey || '';
+
+    function setStatus(msg, kind='muted') {
+        if (!searchStatus) return;
+        searchStatus.className = 'small mt-2 ' + (kind === 'danger' ? 'text-danger' : kind === 'success' ? 'text-success' : 'text-muted');
+        searchStatus.textContent = msg || '';
+    }
+
+    function staticMapUrl(lat, lng) {
+        if (googleKey) {
+            return `https://maps.googleapis.com/maps/api/staticmap?center=${lat},${lng}&zoom=18&size=900x420&scale=2&maptype=satellite&markers=color:red%7C${lat},${lng}&key=${googleKey}`;
+        }
+        return `https://staticmap.openstreetmap.de/staticmap.php?center=${lat},${lng}&zoom=17&size=900x420&markers=${lat},${lng},red-pushpin`;
+    }
+
+    function googleMapsLink(lat, lng) {
+        return `https://www.google.com/maps?q=${lat},${lng}`;
+    }
+
+    function buildCroquisText(texto, lat, lng) {
+        const next = (texto || '').trim();
+        if (!next) return '';
+        const link = (lat !== undefined && lng !== undefined) ? googleMapsLink(lat, lng) : '';
+        return link ? `${next}
+Google Maps: ${link}` : next;
+    }
+
+    function updatePreviewLink(lat, lng) {
+        const linkEl = document.getElementById('croquis-google-link');
+        if (!linkEl) return;
+        if (lat !== undefined && lng !== undefined && lat !== null && lng !== null && lat !== '' && lng !== '') {
+            linkEl.href = googleMapsLink(lat, lng);
+            linkEl.classList.remove('d-none');
+        } else {
+            linkEl.href = '#';
+            linkEl.classList.add('d-none');
+        }
+    }
+
+    function setCroquisReferencia(texto, lat, lng) {
+        if (!croquisInput) return;
+        const current = (croquisInput.value || '').trim();
+        const next = buildCroquisText(texto, lat, lng).trim();
+        const autoFilled = croquisInput.dataset.autoFilled === '1';
+        if (!next) return;
+        if (!current || autoFilled) {
+            croquisInput.value = next;
+            croquisInput.dataset.autoFilled = '1';
+        }
+    }
+
+    function setIfEmptyOrAuto(input, value) {
+        if (!input) return;
+        const next = (value || '').trim();
+        if (!next) return;
+        const autoFilled = input.dataset.autoFilled === '1';
+        const current = (input.value || '').trim();
+        if (!current || autoFilled) {
+            input.value = next;
+            input.dataset.autoFilled = '1';
+        }
+    }
+
+    function normalizeBarrio(value) {
+        return (value || '').replace(/^(Barrio|Neighbourhood|Neighborhood)\s*/i, '').trim();
+    }
+
+    function applyAddressParts(parts = {}) {
+        const city = parts.city || parts.town || parts.village || parts.county || parts.state_district || '';
+        const barrio = normalizeBarrio(parts.suburb || parts.neighbourhood || parts.city_district || parts.quarter || parts.hamlet || '');
+        setIfEmptyOrAuto(cityInput, city);
+        setIfEmptyOrAuto(barrioInput, barrio);
+    }
+
+    function extractGoogleAddressParts(result) {
+        const parts = {};
+        if (!result || !Array.isArray(result.address_components)) return parts;
+        result.address_components.forEach(component => {
+            const types = component.types || [];
+            if (types.includes('sublocality') || types.includes('sublocality_level_1') || types.includes('neighborhood')) {
+                parts.suburb = component.long_name;
+            }
+            if (types.includes('locality')) {
+                parts.city = component.long_name;
+            }
+            if (types.includes('administrative_area_level_2') && !parts.city) {
+                parts.city = component.long_name;
+            }
+            if (types.includes('administrative_area_level_1') && !parts.state_district) {
+                parts.state_district = component.long_name;
+            }
+        });
+        return parts;
+    }
+
+    if (croquisInput) {
+        croquisInput.addEventListener('input', function() {
+            this.dataset.autoFilled = '0';
+        });
+    }
+    if (barrioInput) {
+        barrioInput.addEventListener('input', function() {
+            this.dataset.autoFilled = '0';
+        });
+    }
+    if (cityInput) {
+        cityInput.addEventListener('input', function() {
+            this.dataset.autoFilled = '0';
+        });
+    }
+
+    function updatePreview(lat, lng) {
+        const nLat = Number(lat).toFixed(8);
+        const nLng = Number(lng).toFixed(8);
+        latInput.value = nLat;
+        lngInput.value = nLng;
+        const url = staticMapUrl(nLat, nLng);
+        if (url && previewImg) {
+            previewImg.src = url;
+            previewImg.classList.remove('d-none');
+        }
+        if (coordsText) {
+            coordsText.textContent = `Latitud: ${nLat} · Longitud: ${nLng}`;
+        }
+        updatePreviewLink(nLat, nLng);
+    }
+
+    async function fallbackSearch(query) {
+        const city = (cityInput && cityInput.value ? cityInput.value.trim() : '');
+        const address = (addrInput && addrInput.value ? addrInput.value.trim() : '');
+        const raw = (query || '').trim();
+
+        const candidates = [
+            raw,
+            [raw, city].filter(Boolean).join(', '),
+            [raw, city, 'Paraguay'].filter(Boolean).join(', '),
+            [address, city, 'Paraguay'].filter(Boolean).join(', '),
+        ].filter(Boolean);
+
+        for (const candidate of candidates) {
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=py&q=${encodeURIComponent(candidate)}`;
+                const res = await fetch(url, { headers: { 'Accept-Language': 'es' } });
+                const data = await res.json();
+                if (Array.isArray(data) && data.length) {
+                    const best = data[0];
+                    return { lat: parseFloat(best.lat), lng: parseFloat(best.lon), label: best.display_name || candidate, address: best.address || {} };
+                }
+            } catch (err) {}
+        }
+        return null;
+    }
+
+    async function runSearch(query, googleGeocoderCallback) {
+        const normalized = (query || '').trim();
+        if (!normalized) {
+            setStatus('Escribí una dirección o marcá el punto directamente en el mapa.', 'danger');
+            return;
+        }
+        searchBtn.disabled = true;
+        searchBtn.textContent = 'Buscando...';
+        setStatus('Buscando ubicación...', 'muted');
+        try {
+            if (googleGeocoderCallback) {
+                await googleGeocoderCallback(normalized);
+            } else {
+                const fallback = await fallbackSearch(normalized);
+                if (fallback) {
+                    setStatus('Ubicación encontrada. También podés ajustar el punto haciendo clic en el mapa.', 'success');
+                    return fallback;
+                }
+                setStatus('No se encontró una ubicación exacta. Probá con calle, número, ciudad y Paraguay, o marcá el punto directamente en el mapa.', 'danger');
+                return null;
+            }
+        } finally {
+            searchBtn.disabled = false;
+            searchBtn.textContent = 'Buscar en el mapa';
+        }
+    }
+
+    if (window.google && window.google.maps && googleKey) {
+        statusBadge.textContent = 'Google Maps · Satélite';
+        const center = { lat: initialLat, lng: initialLng };
+        const map = new google.maps.Map(mapContainer, {
+            center,
+            zoom: hasInitial ? 18 : 13,
+            mapTypeId: 'satellite',
+            streetViewControl: false,
+            fullscreenControl: true,
+            mapTypeControl: true,
+            mapTypeControlOptions: {
+                style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+                mapTypeIds: ['roadmap', 'satellite', 'hybrid']
+            }
+        });
+        let marker = new google.maps.Marker({ map, position: center, draggable: true, visible: hasInitial });
+
+        const geocoder = new google.maps.Geocoder();
+
+        function applyReverseGeocode(lat, lng, fallbackMessage) {
+            geocoder.geocode({ location: { lat: parseFloat(lat), lng: parseFloat(lng) } }, function(results, status) {
+                if (status === 'OK' && results && results[0]) {
+                    const formatted = results[0].formatted_address || '';
+                    if (searchInput) searchInput.value = formatted;
+                    if (addrInput && (!addrInput.value || addrInput.value.trim() === '' || addrInput.value === searchInput.value)) {
+                        addrInput.value = formatted;
+                    }
+                    applyAddressParts(extractGoogleAddressParts(results[0]));
+                    setCroquisReferencia(formatted, lat, lng);
+                    setStatus('Ubicación marcada y dirección obtenida automáticamente en el croquis.', 'success');
+                    return;
+                }
+                setStatus(fallbackMessage || 'Ubicación marcada manualmente. Completá la referencia del domicilio si querés más detalle.', 'muted');
+            });
+        }
+
+        function setMarker(lat, lng, opts = {}) {
+            const position = { lat: parseFloat(lat), lng: parseFloat(lng) };
+            marker.setPosition(position);
+            marker.setVisible(true);
+            map.panTo(position);
+            map.setZoom(18);
+            updatePreview(position.lat, position.lng);
+            if (opts.reverse !== false) {
+                applyReverseGeocode(position.lat, position.lng, opts.fallbackMessage);
+            }
+        }
+
+        map.addListener('click', function(e) {
+            setMarker(e.latLng.lat(), e.latLng.lng(), {
+                fallbackMessage: 'Ubicación marcada manualmente. Si no aparece la dirección exacta, completá la referencia del domicilio manualmente.'
+            });
+        });
+        marker.addListener('dragend', function(e) {
+            setMarker(e.latLng.lat(), e.latLng.lng(), {
+                fallbackMessage: 'Ubicación ajustada manualmente. Si la dirección no se completa, podés escribir la referencia abajo.'
+            });
+        });
+        if (hasInitial) updatePreview(initialLat, initialLng);
+
+        searchBtn.addEventListener('click', async function() {
+            const query = [searchInput.value || addrInput.value || '', cityInput.value || 'Paraguay'].join(' ').trim();
+            await runSearch(query, async function(normalizedQuery) {
+                await new Promise((resolve) => {
+                    geocoder.geocode({ address: normalizedQuery, region: 'py', componentRestrictions: { country: 'PY' } }, async function(results, status) {
+                        if (status === 'OK' && results[0]) {
+                            const loc = results[0].geometry.location;
+                            const lat = loc.lat();
+                            const lng = loc.lng();
+                            setMarker(lat, lng, { reverse: false });
+                            const formatted = results[0].formatted_address || normalizedQuery;
+                            if (searchInput) searchInput.value = formatted;
+                            if (addrInput) addrInput.value = formatted;
+                            applyAddressParts(extractGoogleAddressParts(results[0]));
+                            setCroquisReferencia(formatted, lat, lng);
+                            setStatus('Ubicación encontrada con Google Maps y cargada en el croquis.', 'success');
+                            resolve();
+                            return;
+                        }
+                        const fallback = await fallbackSearch(normalizedQuery);
+                        if (fallback) {
+                            setMarker(fallback.lat, fallback.lng, { reverse: false });
+                            if (searchInput) searchInput.value = fallback.label || normalizedQuery;
+                            if (addrInput) addrInput.value = fallback.label || normalizedQuery;
+                            applyAddressParts(fallback.address || {});
+                            setCroquisReferencia(fallback.label || normalizedQuery, fallback.lat, fallback.lng);
+                            setStatus('Ubicación encontrada con búsqueda alternativa y cargada en el croquis.', 'success');
+                        } else {
+                            setStatus('No se encontró una ubicación exacta. Probá con calle, número, ciudad y Paraguay, o marcá el punto directamente en el mapa.', 'danger');
+                        }
+                        resolve();
+                    });
+                });
+            });
+        });
+        return;
+    }
+
+    statusBadge.textContent = 'Mapa básico (sin satélite)';
+    const map = L.map('croquis-map').setView([initialLat, initialLng], hasInitial ? 16 : 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.fr/hot/{z}/{x}/{y}.png', {
+        maxZoom: 19,
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+    let marker = null;
+    async function reverseWithNominatim(lat, lng) {
+        try {
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}&accept-language=es`);
+            const data = await res.json();
+            const display = data && data.display_name ? data.display_name : '';
+            if (display) {
+                if (searchInput) searchInput.value = display;
+                if (addrInput && (!addrInput.value || addrInput.value.trim() === '' || addrInput.value === searchInput.value)) {
+                    addrInput.value = display;
+                }
+                applyAddressParts((data && data.address) ? data.address : {});
+                setCroquisReferencia(display, lat, lng);
+                setStatus('Ubicación marcada y dirección obtenida automáticamente en el croquis.', 'success');
+            } else {
+                setStatus('Ubicación marcada manualmente. Completá la referencia del domicilio si querés más detalle.', 'muted');
+            }
+        } catch (err) {
+            setStatus('Ubicación marcada manualmente. Completá la referencia del domicilio si querés más detalle.', 'muted');
+        }
+    }
+    function setMarker(lat, lng, doReverse = true) {
+        if (marker) map.removeLayer(marker);
+        marker = L.marker([lat, lng], { draggable: true }).addTo(map);
+        marker.on('dragend', function(ev) {
+            const pos = ev.target.getLatLng();
+            updatePreview(pos.lat, pos.lng);
+            reverseWithNominatim(pos.lat, pos.lng);
+        });
+        map.setView([lat, lng], 16);
+        updatePreview(lat, lng);
+        if (doReverse) reverseWithNominatim(lat, lng);
+    }
+    map.on('click', function(e) {
+        setMarker(e.latlng.lat, e.latlng.lng, true);
+    });
+    if (hasInitial) updatePreview(initialLat, initialLng);
+    searchBtn.addEventListener('click', async function() {
+        const q = ((searchInput.value || addrInput.value || '') + ' ' + (cityInput.value || 'Paraguay')).trim();
+        const found = await runSearch(q, null);
+        if (found) {
+            setMarker(found.lat, found.lng, false);
+            if (searchInput) searchInput.value = found.label || q;
+            if (addrInput) addrInput.value = found.label || q;
+            applyAddressParts(found.address || {});
+            setCroquisReferencia(found.label || q, found.lat, found.lng);
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (!({{ google_maps_enabled|yesno:'true,false' }})) {
+        window.initCroquisMap();
+    }
+});
+</script>
+{% if google_maps_enabled %}
+<script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|urlencode }}&callback=initCroquisMap"></script>
+{% endif %}
+{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h2 class="mb-1">Ficha personal web</h2>
+        <p class="text-muted mb-0">Versión digital de la ficha institucional de funcionarios.</p>
+    </div>
+    {% if owner_mode %}<a href="{% url 'mi-ficha' %}" class="btn btn-outline-secondary">Volver</a>{% else %}<a href="{% url 'persona-list' %}" class="btn btn-outline-secondary">Volver</a>{% endif %}
+</div>
+<form method="post" enctype="multipart/form-data" class="card shadow-sm border-0">
+    {% csrf_token %}
+    <div class="card-body">
+        {% if form.errors %}<div class="alert alert-danger">Revisá los campos marcados.</div>{% endif %}
+
+        <h5 class="border-bottom pb-2 mb-3">1. Datos personales</h5>
+        <div class="row g-3">
+            <div class="col-md-3">{{ form.CI_NUMERO.label_tag }}{{ form.CI_NUMERO }}</div>
+            <div class="col-md-5">{{ form.NOMBRES.label_tag }}{{ form.NOMBRES }}</div>
+            <div class="col-md-4">{{ form.APELLIDOS.label_tag }}{{ form.APELLIDOS }}</div>
+            <div class="col-md-3">{{ form.FECHA_NACIMIENTO.label_tag }}{{ form.FECHA_NACIMIENTO }}</div>
+            <div class="col-md-3">{{ form.ESTADO_CIVIL.label_tag }}{{ form.ESTADO_CIVIL }}</div>
+            <div class="col-md-3">{{ form.TELEFONO.label_tag }}{{ form.TELEFONO }}</div>
+            <div class="col-md-3">{{ form.CELULAR.label_tag }}{{ form.CELULAR }}</div>
+            <div class="col-md-6">{{ form.EMAIL.label_tag }}{{ form.EMAIL }}</div>
+            <div class="col-md-6">{{ form.FOTO_CARNET.label_tag }}{{ form.FOTO_CARNET }}</div>
+            <div class="col-md-6">{{ form.DOMICILIO_ACTUAL.label_tag }}{{ form.DOMICILIO_ACTUAL }}</div>
+            <div class="col-md-3">{{ form.BARRIO.label_tag }}{{ form.BARRIO }}</div>
+            <div class="col-md-3">{{ form.CIUDAD.label_tag }}{{ form.CIUDAD }}</div>
+            <div class="col-12"><div class="form-check mt-2">{{ form.ACTIVO }} <label class="form-check-label" for="{{ form.ACTIVO.id_for_label }}">Funcionario activo</label></div></div>
+        </div>
+
+        <h5 class="border-bottom pb-2 mt-4 mb-3">2. Datos laborales</h5>
+        <div class="alert alert-light border small text-muted mb-3">Seleccioná el tipo de vínculo y completá únicamente los datos que correspondan.</div>
+        <div class="card border-0 bg-light-subtle mb-3"><div class="card-body py-3">
+            <label class="form-label fw-semibold mb-2">Tipo de vínculo</label>
+            <div class="d-flex flex-wrap gap-3" id="tipo-vinculo-group">
+                {% for value, label in form.TIPO_VINCULO.field.choices %}{% if value %}
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input" type="radio" name="{{ form.TIPO_VINCULO.html_name }}" id="tipo_vinculo_{{ value|lower }}" value="{{ value }}" {% if form.TIPO_VINCULO.value == value %}checked{% endif %}>
+                    <label class="form-check-label" for="tipo_vinculo_{{ value|lower }}">{{ label }}</label>
+                </div>
+                {% endif %}{% endfor %}
+            </div>
+            {% if form.TIPO_VINCULO.errors %}<div class="text-danger small mt-1">{{ form.TIPO_VINCULO.errors|join:', ' }}</div>{% endif %}
+        </div></div>
+        <div class="row g-3 mb-2">
+            <div class="col-12 col-lg-6"><div id="bloque-nombrado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">a) Nombrado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DECRETO.label_tag }}{{ form.NUMERO_DECRETO }}</div><div class="col-md-6">{{ form.FECHA_DECRETO.label_tag }}{{ form.FECHA_DECRETO }}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-contratado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">b) Contratado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_RESOLUCION.label_tag }}{{ form.NUMERO_RESOLUCION }}</div><div class="col-md-6">{{ form.FECHA_RESOLUCION.label_tag }}{{ form.FECHA_RESOLUCION }}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-pasantia" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">c) Pasantía</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-practicante" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">d) Practicante</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
+        </div>
+        <div class="row g-3 pt-2 border-top mt-1">
+            <div class="col-md-4">{{ form.CARGO.label_tag }}{{ form.CARGO }}</div>
+            <div class="col-md-4">{{ form.CATEGORIA.label_tag }}{{ form.CATEGORIA }}</div>
+            <div class="col-md-4">{{ form.SALARIO.label_tag }}{{ form.SALARIO }}</div>
+            <div class="col-md-4">{{ form.FECHA_INGRESO.label_tag }}{{ form.FECHA_INGRESO }}</div>
+            <div class="col-md-8">{{ form.LUGAR_TRABAJO.label_tag }}{{ form.LUGAR_TRABAJO }}</div>
+        </div>
+
+        <h5 class="border-bottom pb-2 mt-4 mb-3">3. Datos académicos</h5>
+        <div class="row g-3">
+            <div class="col-md-2"><div class="form-check mt-4">{{ form.NIVEL_PRIMARIO }} <label class="form-check-label" for="{{ form.NIVEL_PRIMARIO.id_for_label }}">Primario</label></div></div>
+            <div class="col-md-2"><div class="form-check mt-4">{{ form.NIVEL_SECUNDARIO }} <label class="form-check-label" for="{{ form.NIVEL_SECUNDARIO.id_for_label }}">Secundario</label></div></div>
+            <div class="col-md-2"><div class="form-check mt-4">{{ form.NIVEL_UNIVERSITARIO }} <label class="form-check-label" for="{{ form.NIVEL_UNIVERSITARIO.id_for_label }}">Universitario</label></div></div>
+            <div class="col-md-4">{{ form.BACHILLER.label_tag }}{{ form.BACHILLER }}</div>
+            <div class="col-md-2">{{ form.ANIO_BACHILLER.label_tag }}{{ form.ANIO_BACHILLER }}</div>
+            <div class="col-md-4">{{ form.CARRERA.label_tag }}{{ form.CARRERA }}</div>
+            <div class="col-md-2">{{ form.ANIO_CARRERA.label_tag }}{{ form.ANIO_CARRERA }}</div>
+            <div class="col-md-6">{{ form.UNIVERSIDAD.label_tag }}{{ form.UNIVERSIDAD }}</div>
+            <div class="col-md-4">{{ form.POSTGRADOS.label_tag }}{{ form.POSTGRADOS }}</div>
+            <div class="col-md-4">{{ form.MAESTRIAS.label_tag }}{{ form.MAESTRIAS }}</div>
+            <div class="col-md-4">{{ form.DOCTORADOS.label_tag }}{{ form.DOCTORADOS }}</div>
+            <div class="col-12">{{ form.OTROS_ESTUDIOS.label_tag }}{{ form.OTROS_ESTUDIOS }}</div>
+        </div>
+
+        <h5 class="border-bottom pb-2 mt-4 mb-3">4. Historial médico y emergencia</h5>
+        <div class="row g-3">
+            <div class="col-md-6">{{ form.ALERGIAS_ENFERMEDADES.label_tag }}{{ form.ALERGIAS_ENFERMEDADES }}</div>
+            <div class="col-md-3">{{ form.GRUPO_SANGUINEO.label_tag }}{{ form.GRUPO_SANGUINEO }}</div>
+            <div class="col-md-3"><div class="form-check mt-4">{{ form.TIENE_SEGURO_MEDICO }} <label class="form-check-label" for="{{ form.TIENE_SEGURO_MEDICO.id_for_label }}">Posee seguro médico</label></div></div>
+            <div class="col-md-6">{{ form.SANATORIO.label_tag }}{{ form.SANATORIO }}</div>
+            <div class="col-md-6">{{ form.TELEFONO_SANATORIO.label_tag }}{{ form.TELEFONO_SANATORIO }}</div>
+            <div class="col-md-6">{{ form.EMERGENCIA_NOMBRE_1.label_tag }}{{ form.EMERGENCIA_NOMBRE_1 }}</div>
+            <div class="col-md-6">{{ form.EMERGENCIA_TELEFONO_1.label_tag }}{{ form.EMERGENCIA_TELEFONO_1 }}</div>
+            <div class="col-md-6">{{ form.EMERGENCIA_NOMBRE_2.label_tag }}{{ form.EMERGENCIA_NOMBRE_2 }}</div>
+            <div class="col-md-6">{{ form.EMERGENCIA_TELEFONO_2.label_tag }}{{ form.EMERGENCIA_TELEFONO_2 }}</div>
+        </div>
+
+        <h5 class="border-bottom pb-2 mt-4 mb-3">5. Datos familiares</h5>
+        <div class="row g-3">
+            <div class="col-md-4">{{ form.NOMBRE_PADRE.label_tag }}{{ form.NOMBRE_PADRE }}</div>
+            <div class="col-md-4">{{ form.NOMBRE_MADRE.label_tag }}{{ form.NOMBRE_MADRE }}</div>
+            <div class="col-md-4">{{ form.NOMBRE_CONYUGE.label_tag }}{{ form.NOMBRE_CONYUGE }}</div>
+        </div>
+        <div class="row g-3 mt-1">
+            <div class="col-md-6">{{ form.HIJO_1_NOMBRE.label_tag }}{{ form.HIJO_1_NOMBRE }}</div><div class="col-md-6">{{ form.HIJO_1_FECHA.label_tag }}{{ form.HIJO_1_FECHA }}</div>
+            <div class="col-md-6">{{ form.HIJO_2_NOMBRE.label_tag }}{{ form.HIJO_2_NOMBRE }}</div><div class="col-md-6">{{ form.HIJO_2_FECHA.label_tag }}{{ form.HIJO_2_FECHA }}</div>
+            <div class="col-md-6">{{ form.HIJO_3_NOMBRE.label_tag }}{{ form.HIJO_3_NOMBRE }}</div><div class="col-md-6">{{ form.HIJO_3_FECHA.label_tag }}{{ form.HIJO_3_FECHA }}</div>
+            <div class="col-md-6">{{ form.HIJO_4_NOMBRE.label_tag }}{{ form.HIJO_4_NOMBRE }}</div><div class="col-md-6">{{ form.HIJO_4_FECHA.label_tag }}{{ form.HIJO_4_FECHA }}</div>
+            <div class="col-md-6">{{ form.HIJO_5_NOMBRE.label_tag }}{{ form.HIJO_5_NOMBRE }}</div><div class="col-md-6">{{ form.HIJO_5_FECHA.label_tag }}{{ form.HIJO_5_FECHA }}</div>
+            <div class="col-md-6">{{ form.HIJO_6_NOMBRE.label_tag }}{{ form.HIJO_6_NOMBRE }}</div><div class="col-md-6">{{ form.HIJO_6_FECHA.label_tag }}{{ form.HIJO_6_FECHA }}</div>
+        </div>
+
+        <h5 class="border-bottom pb-2 mt-4 mb-3">6. Croquis y referencia del domicilio</h5>
+        <div class="row g-4 align-items-start">
+            <div class="col-lg-7">
+                <div class="map-card">
+                    <div class="map-toolbar">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-8">
+                                <label class="form-label mb-1">Buscar dirección o referencia</label>
+                                <input type="text" id="map-search-input" class="form-control" placeholder="Ej.: Av. Mariscal López 1234, Asunción">
+                            </div>
+                            <div class="col-md-4 d-grid">
+                                <button type="button" id="map-search-btn" class="btn btn-outline-primary">Buscar en el mapa</button>
+                                <span id="croquis-provider-badge" class="croquis-badge ms-2">{% if google_maps_enabled %}Google Maps · Satélite{% else %}Mapa básico (sin satélite){% endif %}</span>
+                            </div>
+                        </div>
+                        <div class="form-text mt-2 map-help">Podés buscar una dirección o hacer clic sobre el mapa para marcar la ubicación exacta del domicilio. {% if not google_maps_enabled %}<strong>Para vista satelital y vista previa de Google, cargá GOOGLE_MAPS_API_KEY en el archivo .env.</strong>{% endif %}</div>
+                    </div>
+                    <div id="croquis-map" data-google-maps-key="{{ google_maps_api_key }}"></div>
+                </div>
+                {{ form.LATITUD }}{{ form.LONGITUD }}
+            </div>
+            <div class="col-lg-5">
+                <div class="croquis-preview h-100">
+                    <label class="form-label fw-semibold">Vista previa del croquis</label>
+                    <img id="croquis-preview-img" src="{% if google_maps_enabled and form.LATITUD.value and form.LONGITUD.value %}https://maps.googleapis.com/maps/api/staticmap?center={{ form.LATITUD.value }},{{ form.LONGITUD.value }}&zoom=18&size=900x420&scale=2&maptype=satellite&markers=color:red%7C{{ form.LATITUD.value }},{{ form.LONGITUD.value }}&key={{ google_maps_api_key|urlencode }}{% endif %}" class="{% if not google_maps_enabled or not form.LATITUD.value or not form.LONGITUD.value %}d-none{% endif %}" alt="Vista previa del croquis">
+                    <p id="croquis-coords" class="croquis-meta mt-2 mb-2">{% if form.LATITUD.value and form.LONGITUD.value %}Latitud: {{ form.LATITUD.value }} · Longitud: {{ form.LONGITUD.value }}{% else %}Aún no se seleccionó una ubicación en el mapa.{% endif %}</p>
+                    <a id="croquis-google-link" class="btn btn-sm btn-outline-primary mb-3 {% if not form.LATITUD.value or not form.LONGITUD.value %}d-none{% endif %}" href="{% if form.LATITUD.value and form.LONGITUD.value %}https://www.google.com/maps?q={{ form.LATITUD.value }},{{ form.LONGITUD.value }}{% else %}#{% endif %}" target="_blank" rel="noopener noreferrer">Abrir ubicación en Google Maps</a>
+                    <div>{{ form.CROQUIS_REFERENCIA.label_tag }}{{ form.CROQUIS_REFERENCIA }}</div>
+                    <div class="form-text mt-2">La dirección y el enlace de Google Maps se completan automáticamente al seleccionar un punto en el mapa. Igual podés editar el texto manualmente.</div>
+                </div>
+            </div>
+            <div class="col-md-6">{{ form.FIRMA_ACLARACION.label_tag }}{{ form.FIRMA_ACLARACION }}</div>
+            <div class="col-md-6">{{ form.FECHA_FIRMA.label_tag }}{{ form.FECHA_FIRMA }}</div>
+        </div>
+    </div>
+    <div class="card-footer d-flex justify-content-between">
+        {% if owner_mode %}<a href="{% url 'mi-ficha' %}" class="btn btn-secondary">Cancelar</a>{% else %}<a href="{% url 'persona-list' %}" class="btn btn-secondary">Cancelar</a>{% endif %}
+        <button type="submit" class="btn btn-primary">Guardar ficha</button>
+    </div>
+</form>
+{% endblock %}

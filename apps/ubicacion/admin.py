@@ -2,12 +2,12 @@
 Admin para Domicilio con mapa integrado (OSMGeoAdmin)
 """
 from django.contrib import admin
-from django.contrib.gis.admin import OSMGeoAdmin
+from apps.personas.models import Persona
 from .models import Domicilio
 
 
 @admin.register(Domicilio)
-class DomicilioAdmin(OSMGeoAdmin):
+class DomicilioAdmin(admin.ModelAdmin):
     """
     Admin con mapa OpenStreetMap integrado para edición de puntos.
     """

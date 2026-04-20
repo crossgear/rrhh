@@ -15,6 +15,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libproj-dev \
     gcc \
     postgresql-client \
+    build-essential \
+    libldap2-dev \
+    libsasl2-dev \
+    libssl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear directorio de trabajo
@@ -29,16 +33,16 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY . /app/
 
 # Crear directorios necesarios
-RUN mkdir -p /app/logs && chmod -R 755 /app/logs
+# Crear directorios necesarios
+RUN mkdir -p /app/logs /app/media/fotos_carnet && chmod -R 755 /app/logs && chmod -R 777 /app/media && touch /app/logs/rrhh.log && chown -R www-data:www-data /app/logs /app/media
 
 # Recolectar archivos estáticos
 RUN python manage.py collectstatic --noinput --clear
 
 # Crear usuario no-root para ejecutar
-RUN useradd --create-home --shell /bin/bash www-data && \
-    chown -R www-data:www-data /app
+RUN chown -R www-data:www-data /app
 
-USER www-data
+# USER www-data
 
 # Exponer puerto
 EXPOSE 8000

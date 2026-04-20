@@ -37,9 +37,10 @@ INSTALLED_APPS = [
 
     # Third-party apps
     'rest_framework',
+    'rest_framework.authtoken',
     'rest_framework_gis',
     'corsheaders',
-    'bootstrap5',
+    'django_bootstrap5',
 
     # Local apps
     'apps.usuarios',
@@ -162,6 +163,48 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
 
 
+# Google Maps
+GOOGLE_MAPS_API_KEY = os.getenv('GOOGLE_MAPS_API_KEY', '')
+
+# LDAP / Active Directory
+ENABLE_LDAP_AUTH = os.getenv('ENABLE_LDAP_AUTH', 'False') == 'True'
+AUTH_LDAP_SERVER_URI = os.getenv('AUTH_LDAP_SERVER_URI', '')
+AUTH_LDAP_DOMAIN = os.getenv('AUTH_LDAP_DOMAIN', '')
+AUTH_LDAP_SEARCH_BASE = os.getenv('AUTH_LDAP_SEARCH_BASE', '')
+AUTH_LDAP_BIND_DN = os.getenv('AUTH_LDAP_BIND_DN', '')
+AUTH_LDAP_BIND_PASSWORD = os.getenv('AUTH_LDAP_BIND_PASSWORD', '')
+AUTH_LDAP_DISABLE_CERT_CHECK = os.getenv('AUTH_LDAP_DISABLE_CERT_CHECK', 'True') == 'True'
+
+AUTHENTICATION_BACKENDS = ['django.contrib.auth.backends.ModelBackend']
+
+if ENABLE_LDAP_AUTH:
+    import ldap
+    from django_auth_ldap.config import LDAPSearch
+
+    AUTHENTICATION_BACKENDS = [
+        'django_auth_ldap.backend.LDAPBackend',
+        'django.contrib.auth.backends.ModelBackend',
+    ]
+
+    AUTH_LDAP_USER_SEARCH = LDAPSearch(
+        AUTH_LDAP_SEARCH_BASE,
+        ldap.SCOPE_SUBTREE,
+        '(sAMAccountName=%(user)s)'
+    )
+    AUTH_LDAP_USER_ATTR_MAP = {
+        'username': 'sAMAccountName',
+        'first_name': 'givenName',
+        'last_name': 'sn',
+        'email': 'mail',
+    }
+    AUTH_LDAP_ALWAYS_UPDATE_USER = True
+    AUTH_LDAP_USER_FLAGS_BY_GROUP = {}
+    AUTH_LDAP_CONNECTION_OPTIONS = {ldap.OPT_REFERRALS: 0}
+    AUTH_LDAP_GLOBAL_OPTIONS = {
+        ldap.OPT_X_TLS_REQUIRE_CERT: ldap.OPT_X_TLS_NEVER if AUTH_LDAP_DISABLE_CERT_CHECK else ldap.OPT_X_TLS_DEMAND,
+    }
+
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
@@ -230,24 +273,19 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'simple',
         },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': BASE_DIR / 'logs' / 'rrhh.log',
-            'formatter': 'verbose',
-        },
     },
     'root': {
-        'handlers': ['console', 'file'],
+        'handlers': ['console'],
         'level': 'INFO',
     },
     'loggers': {
         'django': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
             'propagate': False,
         },
         'apps': {
-            'handlers': ['console', 'file'],
+            'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': False,
         },

@@ -98,15 +98,16 @@ class MapaViewSet(viewsets.ReadOnlyModelViewSet):
     Vista de solo lectura para obtener domicilios en formato GeoJSON
     para ser consumidos por mapas (Leaflet, OpenLayers, etc.).
     """
-    queryset = Domicilio.objects.filter(ES_ACTUAL=True).select_related('persona')
+    queryset = Domicilio.objects.filter(ES_ACTUAL=True, UBICACION__isnull=False).select_related('persona')
     serializer_class = DomicilioGeoSerializer
     permission_classes = [permissions.IsAuthenticated]
+    pagination_class = None
 
     def get_queryset(self):
         """
         Permite filtrar por ciudad desde query params.
         """
-        queryset = super().get_queryset()
+        queryset = super().get_queryset().filter(UBICACION__isnull=False)
         ciudad = self.request.query_params.get('CIUDAD')
         if ciudad:
             queryset = queryset.filter(CIUDAD__iexact=ciudad)
