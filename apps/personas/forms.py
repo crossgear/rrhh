@@ -41,7 +41,7 @@ class FichaPersonalForm(forms.Form):
     FECHA_DGRP = forms.DateField(label='Fecha D.G.R.P.', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     CARGO = forms.CharField(label='Cargo', max_length=150, required=True)
     CATEGORIA = forms.CharField(label='Categoría', max_length=80, required=True)
-    SALARIO = forms.DecimalField(label='Salario', required=True, max_digits=12, decimal_places=2)
+    SALARIO = forms.DecimalField(label='Salario', required=True, max_digits=12, decimal_places=0, widget=forms.TextInput())
     FECHA_INGRESO = forms.DateField(label='Fecha de ingreso', required=True, widget=forms.DateInput(attrs={'type': 'date'}))
     LUGAR_TRABAJO = forms.CharField(label='Lugar de trabajo', max_length=150, required=True)
 
@@ -126,6 +126,7 @@ class FichaPersonalForm(forms.Form):
             self.fields['EMAIL'].help_text = 'Ingrese su correo institucional. Si escribe solo el usuario, se completará @run.gov.py automáticamente.'
 
         if 'SALARIO' in self.fields:
+            self.fields['SALARIO'].widget = forms.TextInput()
             self.fields['SALARIO'].widget.attrs.update({
                 'placeholder': '0',
                 'inputmode': 'numeric',
@@ -232,9 +233,9 @@ class FichaPersonalForm(forms.Form):
         if salario in (None, ''):
             return None
         if isinstance(salario, str):
-            normalizado = salario.replace('.', '').replace(' ', '').replace(',', '.')
+            normalizado = salario.replace('.', '').replace(' ', '').replace(',', '')
             try:
-                return forms.DecimalField(max_digits=12, decimal_places=2).clean(normalizado)
+                return forms.DecimalField(max_digits=12, decimal_places=0).clean(normalizado)
             except forms.ValidationError:
                 raise forms.ValidationError('Ingrese un salario válido.')
         return salario
