@@ -21,29 +21,29 @@ class FichaPersonalForm(forms.Form):
     FECHA_NACIMIENTO = forms.DateField(label='Fecha de nacimiento', widget=forms.DateInput(attrs={'type': 'date'}))
     ESTADO_CIVIL = forms.ChoiceField(label='Estado civil', choices=Persona.ESTADO_CIVIL_CHOICES, required=False)
     TELEFONO = forms.CharField(label='Teléfono', max_length=20, required=False)
-    CELULAR = forms.CharField(label='Celular', max_length=20, required=False)
+    CELULAR = forms.CharField(label='Celular', max_length=20, required=True)
     EMAIL = forms.EmailField(label='Correo institucional', required=False)
-    DOMICILIO_ACTUAL = forms.CharField(label='Domicilio actual', max_length=200, required=False)
-    BARRIO = forms.CharField(label='Barrio', max_length=100, required=False)
-    CIUDAD = forms.CharField(label='Ciudad', max_length=100, required=False)
+    DOMICILIO_ACTUAL = forms.CharField(label='Domicilio actual', max_length=200, required=True)
+    BARRIO = forms.CharField(label='Barrio', max_length=100, required=True)
+    CIUDAD = forms.CharField(label='Ciudad', max_length=100, required=True)
     LATITUD = forms.DecimalField(label='Latitud', required=False, max_digits=10, decimal_places=8, widget=forms.HiddenInput())
     LONGITUD = forms.DecimalField(label='Longitud', required=False, max_digits=11, decimal_places=8, widget=forms.HiddenInput())
-    FOTO_CARNET = forms.ImageField(label='Foto carnet', required=False)
+    FOTO_CARNET = forms.ImageField(label='Foto carnet', required=True)
     ACTIVO = forms.BooleanField(label='Activo', required=False, initial=True)
 
     # Datos laborales
-    TIPO_VINCULO = forms.ChoiceField(label='Tipo de vínculo', choices=DatosLaborales.TIPO_VINCULO_CHOICES, required=False)
+    TIPO_VINCULO = forms.ChoiceField(label='Tipo de vínculo', choices=DatosLaborales.TIPO_VINCULO_CHOICES, required=True)
     NUMERO_DECRETO = forms.CharField(label='Decreto N°', max_length=50, required=False)
     FECHA_DECRETO = forms.DateField(label='Fecha decreto', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     NUMERO_RESOLUCION = forms.CharField(label='Resolución N°', max_length=50, required=False)
     FECHA_RESOLUCION = forms.DateField(label='Fecha resolución', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     NUMERO_DGRP = forms.CharField(label='D.G.R.P. N°', max_length=50, required=False)
     FECHA_DGRP = forms.DateField(label='Fecha D.G.R.P.', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
-    CARGO = forms.CharField(label='Cargo', max_length=150, required=False)
-    CATEGORIA = forms.CharField(label='Categoría', max_length=80, required=False)
-    SALARIO = forms.DecimalField(label='Salario', required=False, max_digits=12, decimal_places=2)
-    FECHA_INGRESO = forms.DateField(label='Fecha de ingreso', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
-    LUGAR_TRABAJO = forms.CharField(label='Lugar de trabajo', max_length=150, required=False)
+    CARGO = forms.CharField(label='Cargo', max_length=150, required=True)
+    CATEGORIA = forms.CharField(label='Categoría', max_length=80, required=True)
+    SALARIO = forms.DecimalField(label='Salario', required=True, max_digits=12, decimal_places=2)
+    FECHA_INGRESO = forms.DateField(label='Fecha de ingreso', required=True, widget=forms.DateInput(attrs={'type': 'date'}))
+    LUGAR_TRABAJO = forms.CharField(label='Lugar de trabajo', max_length=150, required=True)
 
     # Datos académicos
     NIVEL_PRIMARIO = forms.BooleanField(label='Nivel primario', required=False)
@@ -61,14 +61,14 @@ class FichaPersonalForm(forms.Form):
 
     # Historial médico
     ALERGIAS_ENFERMEDADES = forms.CharField(label='Alergias o enfermedades', required=False, widget=forms.Textarea(attrs={'rows': 2}))
-    GRUPO_SANGUINEO = forms.ChoiceField(label='Grupo sanguíneo', choices=GRUPO_SANGUINEO_CHOICES, required=False)
+    GRUPO_SANGUINEO = forms.ChoiceField(label='Grupo sanguíneo', choices=GRUPO_SANGUINEO_CHOICES, required=True)
     TIENE_SEGURO_MEDICO = forms.BooleanField(label='Seguro médico', required=False)
     SANATORIO = forms.CharField(label='Sanatorio', max_length=150, required=False)
     TELEFONO_SANATORIO = forms.CharField(label='Tel. sanatorio', max_length=20, required=False)
 
     # Emergencia
-    EMERGENCIA_NOMBRE_1 = forms.CharField(label='Contacto emergencia 1', max_length=150, required=False)
-    EMERGENCIA_TELEFONO_1 = forms.CharField(label='Teléfono emergencia 1', max_length=20, required=False)
+    EMERGENCIA_NOMBRE_1 = forms.CharField(label='Contacto emergencia 1', max_length=150, required=True)
+    EMERGENCIA_TELEFONO_1 = forms.CharField(label='Teléfono emergencia 1', max_length=20, required=True)
     EMERGENCIA_NOMBRE_2 = forms.CharField(label='Contacto emergencia 2', max_length=150, required=False)
     EMERGENCIA_TELEFONO_2 = forms.CharField(label='Teléfono emergencia 2', max_length=20, required=False)
 
@@ -91,7 +91,7 @@ class FichaPersonalForm(forms.Form):
 
     # Cierre de ficha
     OBSERVACIONES_FICHA = forms.CharField(label='Observaciones', required=False, widget=forms.Textarea(attrs={'rows': 3}))
-    CROQUIS_REFERENCIA = forms.CharField(label='Croquis / referencia del domicilio', required=False, widget=forms.Textarea(attrs={'rows': 3}))
+    CROQUIS_REFERENCIA = forms.CharField(label='Croquis / referencia del domicilio', required=True, widget=forms.Textarea(attrs={'rows': 3}))
     FIRMA_ACLARACION = forms.CharField(label='Aclaración', max_length=150, required=False)
     FECHA_FIRMA = forms.DateField(label='Fecha', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
 
@@ -103,6 +103,12 @@ class FichaPersonalForm(forms.Form):
             self._load_from_instance(persona)
 
     def _apply_bootstrap(self):
+        required_field_names = {
+            'CI_NUMERO', 'NOMBRES', 'APELLIDOS', 'FECHA_NACIMIENTO', 'CELULAR',
+            'DOMICILIO_ACTUAL', 'BARRIO', 'CIUDAD', 'FOTO_CARNET', 'TIPO_VINCULO', 'CARGO',
+            'CATEGORIA', 'SALARIO', 'FECHA_INGRESO', 'LUGAR_TRABAJO', 'GRUPO_SANGUINEO', 'EMERGENCIA_NOMBRE_1',
+            'EMERGENCIA_TELEFONO_1', 'CROQUIS_REFERENCIA'
+        }
         for name, field in self.fields.items():
             widget = field.widget
             css = 'form-control'
@@ -111,10 +117,30 @@ class FichaPersonalForm(forms.Form):
             elif isinstance(widget, forms.Select):
                 css = 'form-select'
             widget.attrs.setdefault('class', css)
+            if name in required_field_names and not isinstance(widget, forms.HiddenInput):
+                widget.attrs['required'] = 'required'
+                widget.attrs['aria-required'] = 'true'
 
         if 'EMAIL' in self.fields:
             self.fields['EMAIL'].widget.attrs.setdefault('placeholder', 'usuario@run.gov.py')
             self.fields['EMAIL'].help_text = 'Ingrese su correo institucional. Si escribe solo el usuario, se completará @run.gov.py automáticamente.'
+
+        if 'SALARIO' in self.fields:
+            self.fields['SALARIO'].widget.attrs.update({
+                'placeholder': '0',
+                'inputmode': 'numeric',
+                'autocomplete': 'off',
+                'data-format-salario': '1',
+            })
+
+
+    def clean_FOTO_CARNET(self):
+        foto = self.cleaned_data.get('FOTO_CARNET')
+        if foto:
+            return foto
+        if self.persona and getattr(self.persona, 'FOTO_CARNET', None):
+            return self.persona.FOTO_CARNET
+        raise forms.ValidationError('Adjunte una foto carnet.')
 
     def _load_from_instance(self, persona):
         extra = persona.FICHA_EXTRA or {}
@@ -201,6 +227,18 @@ class FichaPersonalForm(forms.Form):
             pass
 
 
+    def clean_SALARIO(self):
+        salario = self.data.get('SALARIO', '') if self.is_bound else self.cleaned_data.get('SALARIO')
+        if salario in (None, ''):
+            return None
+        if isinstance(salario, str):
+            normalizado = salario.replace('.', '').replace(' ', '').replace(',', '.')
+            try:
+                return forms.DecimalField(max_digits=12, decimal_places=2).clean(normalizado)
+            except forms.ValidationError:
+                raise forms.ValidationError('Ingrese un salario válido.')
+        return salario
+
     def clean_EMAIL(self):
         value = (self.cleaned_data.get('EMAIL') or '').strip().lower()
         if not value:
@@ -211,19 +249,44 @@ class FichaPersonalForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
+
+        categoria = cleaned_data.get('CATEGORIA')
+        salario = cleaned_data.get('SALARIO')
+        fecha_ingreso = cleaned_data.get('FECHA_INGRESO')
+
+        if not categoria:
+            self.add_error('CATEGORIA', 'La categoría es obligatoria.')
+        if salario in (None, ''):
+            self.add_error('SALARIO', 'El salario es obligatorio.')
+        if not fecha_ingreso:
+            self.add_error('FECHA_INGRESO', 'La fecha de ingreso es obligatoria.')
+
         tipo = cleaned_data.get('TIPO_VINCULO')
 
+        # Obligatorios condicionales por tipo de vínculo
         if tipo == 'NOMBRADO':
+            if not cleaned_data.get('NUMERO_DECRETO'):
+                self.add_error('NUMERO_DECRETO', 'Este dato es obligatorio para personal nombrado.')
+            if not cleaned_data.get('FECHA_DECRETO'):
+                self.add_error('FECHA_DECRETO', 'Este dato es obligatorio para personal nombrado.')
             cleaned_data['NUMERO_RESOLUCION'] = ''
             cleaned_data['FECHA_RESOLUCION'] = None
             cleaned_data['NUMERO_DGRP'] = ''
             cleaned_data['FECHA_DGRP'] = None
         elif tipo == 'CONTRATADO':
+            if not cleaned_data.get('NUMERO_RESOLUCION'):
+                self.add_error('NUMERO_RESOLUCION', 'Este dato es obligatorio para personal contratado.')
+            if not cleaned_data.get('FECHA_RESOLUCION'):
+                self.add_error('FECHA_RESOLUCION', 'Este dato es obligatorio para personal contratado.')
             cleaned_data['NUMERO_DECRETO'] = ''
             cleaned_data['FECHA_DECRETO'] = None
             cleaned_data['NUMERO_DGRP'] = ''
             cleaned_data['FECHA_DGRP'] = None
         elif tipo in ('PASANTIA', 'PRACTICANTE'):
+            if not cleaned_data.get('NUMERO_DGRP'):
+                self.add_error('NUMERO_DGRP', 'Este dato es obligatorio para pasantía o practicantado.')
+            if not cleaned_data.get('FECHA_DGRP'):
+                self.add_error('FECHA_DGRP', 'Este dato es obligatorio para pasantía o practicantado.')
             cleaned_data['NUMERO_DECRETO'] = ''
             cleaned_data['FECHA_DECRETO'] = None
             cleaned_data['NUMERO_RESOLUCION'] = ''
@@ -235,6 +298,24 @@ class FichaPersonalForm(forms.Form):
             cleaned_data['FECHA_RESOLUCION'] = None
             cleaned_data['NUMERO_DGRP'] = ''
             cleaned_data['FECHA_DGRP'] = None
+
+        # Al menos un nivel académico
+        if not any([
+            cleaned_data.get('NIVEL_PRIMARIO'),
+            cleaned_data.get('NIVEL_SECUNDARIO'),
+            cleaned_data.get('NIVEL_UNIVERSITARIO'),
+        ]):
+            raise forms.ValidationError('Seleccione al menos un nivel académico alcanzado.')
+
+        if cleaned_data.get('NIVEL_UNIVERSITARIO'):
+            if not cleaned_data.get('CARRERA'):
+                self.add_error('CARRERA', 'La carrera es obligatoria si marca nivel universitario.')
+            if not cleaned_data.get('UNIVERSIDAD'):
+                self.add_error('UNIVERSIDAD', 'La universidad es obligatoria si marca nivel universitario.')
+
+        # Si tiene seguro, completar sanatorio
+        if cleaned_data.get('TIENE_SEGURO_MEDICO') and not cleaned_data.get('SANATORIO'):
+            self.add_error('SANATORIO', 'Indique el sanatorio o seguro correspondiente.')
 
         return cleaned_data
 

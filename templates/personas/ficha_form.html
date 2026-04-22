@@ -11,6 +11,17 @@
     .map-help { font-size: .9rem; color: #475569; }
     .croquis-meta { font-size: .9rem; color: #475569; }
     .laboral-block { transition: all .2s ease; }
+
+    .required-star { color: #dc3545; margin-left: 4px; }
+    .required-note { background: #eef6ff; border: 1px solid #cfe2ff; color: #0c4a6e; border-radius: 12px; padding: 12px 14px; }
+    .field-error { color: #b42318; font-size: .82rem; margin-top: 6px; }
+    .is-required input:not([type='checkbox']), .is-required select, .is-required textarea { border-left: 3px solid #dc3545; }
+    .was-validated .form-control:invalid, .was-validated .form-select:invalid, .was-validated textarea:invalid { border-color: #dc3545; box-shadow: none; background-color: #fff5f5; }
+    .was-validated .form-control:valid, .was-validated .form-select:valid, .was-validated textarea:valid { border-color: #198754; box-shadow: none; }
+    .invalid-feedback { display: none; }
+    .was-validated :invalid ~ .invalid-feedback { display: block; }
+    .section-subnote { font-size: .88rem; color: #64748b; }
+
 </style>
 {% endblock %}
 {% block extra_js %}
@@ -410,6 +421,56 @@ document.addEventListener('DOMContentLoaded', function() {
 {% if google_maps_enabled %}
 <script async defer src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key|urlencode }}&callback=initCroquisMap"></script>
 {% endif %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form.needs-validation');
+    if (!form) return;
+
+    const salarioInput = document.getElementById('id_SALARIO');
+    function formatMiles(value) {
+        const digits = String(value || '').replace(/\D/g, '');
+        if (!digits) return '';
+        return digits.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+    }
+    if (salarioInput) {
+        salarioInput.addEventListener('input', function() {
+            const start = this.selectionStart || 0;
+            const before = this.value;
+            const digitsBefore = before.slice(0, start).replace(/\D/g, '').length;
+            this.value = formatMiles(this.value);
+            let pos = this.value.length;
+            let seen = 0;
+            for (let i = 0; i < this.value.length; i++) {
+                if (/\d/.test(this.value[i])) seen++;
+                if (seen >= digitsBefore) { pos = i + 1; break; }
+            }
+            this.setSelectionRange(pos, pos);
+        });
+        if (salarioInput.value) {
+            salarioInput.value = formatMiles(salarioInput.value);
+        }
+    }
+
+    form.addEventListener('submit', function(event) {
+        if (salarioInput) {
+            salarioInput.value = String(salarioInput.value || '').replace(/\./g, '');
+        }
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+            if (salarioInput) {
+                salarioInput.value = formatMiles(salarioInput.value);
+            }
+            const firstInvalid = form.querySelector(':invalid');
+            if (firstInvalid) {
+                firstInvalid.focus({preventScroll:false});
+                firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
+            }
+        }
+        form.classList.add('was-validated');
+    }, false);
+});
+</script>
 {% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -419,36 +480,38 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
     {% if owner_mode %}<a href="{% url 'mi-ficha' %}" class="btn btn-outline-secondary">Volver</a>{% else %}<a href="{% url 'persona-list' %}" class="btn btn-outline-secondary">Volver</a>{% endif %}
 </div>
-<form method="post" enctype="multipart/form-data" class="card shadow-sm border-0">
+<form method="post" enctype="multipart/form-data" class="card shadow-sm border-0 needs-validation" novalidate>
     {% csrf_token %}
     <div class="card-body">
-        {% if form.errors %}<div class="alert alert-danger">Revisá los campos marcados.</div>{% endif %}
+        {% if form.errors %}<div class="alert alert-danger">Revisá los campos marcados en rojo. Los campos con <span class='text-danger'>*</span> son obligatorios.</div>{% endif %}
+        {% if form.non_field_errors %}<div class="alert alert-warning">{{ form.non_field_errors|join:' ' }}</div>{% endif %}
+        <div class="required-note mb-4"><strong>Importante:</strong> completá los campos marcados con <span class='text-danger'>*</span>, incluida la foto carnet. Los datos médicos y de emergencia ayudan a la institución a actuar rápido ante cualquier eventualidad.</div>
 
         <h5 class="border-bottom pb-2 mb-3">1. Datos personales</h5>
         <div class="row g-3">
-            <div class="col-md-3">{{ form.CI_NUMERO.label_tag }}{{ form.CI_NUMERO }}</div>
-            <div class="col-md-5">{{ form.NOMBRES.label_tag }}{{ form.NOMBRES }}</div>
-            <div class="col-md-4">{{ form.APELLIDOS.label_tag }}{{ form.APELLIDOS }}</div>
-            <div class="col-md-3">{{ form.FECHA_NACIMIENTO.label_tag }}{{ form.FECHA_NACIMIENTO }}</div>
+            <div class="col-md-3 is-required"><label for="{{ form.CI_NUMERO.id_for_label }}" class="form-label fw-semibold">{{ form.CI_NUMERO.label }}<span class="required-star">*</span></label>{{ form.CI_NUMERO }}<div class="invalid-feedback">Ingrese el número de cédula.</div>{% if form.CI_NUMERO.errors %}<div class="field-error">{{ form.CI_NUMERO.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-5 is-required"><label for="{{ form.NOMBRES.id_for_label }}" class="form-label fw-semibold">{{ form.NOMBRES.label }}<span class="required-star">*</span></label>{{ form.NOMBRES }}<div class="invalid-feedback">Ingrese los nombres.</div>{% if form.NOMBRES.errors %}<div class="field-error">{{ form.NOMBRES.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-4 is-required"><label for="{{ form.APELLIDOS.id_for_label }}" class="form-label fw-semibold">{{ form.APELLIDOS.label }}<span class="required-star">*</span></label>{{ form.APELLIDOS }}<div class="invalid-feedback">Ingrese los apellidos.</div>{% if form.APELLIDOS.errors %}<div class="field-error">{{ form.APELLIDOS.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-3 is-required"><label for="{{ form.FECHA_NACIMIENTO.id_for_label }}" class="form-label fw-semibold">{{ form.FECHA_NACIMIENTO.label }}<span class="required-star">*</span></label>{{ form.FECHA_NACIMIENTO }}<div class="invalid-feedback">Ingrese la fecha de nacimiento.</div>{% if form.FECHA_NACIMIENTO.errors %}<div class="field-error">{{ form.FECHA_NACIMIENTO.errors|join:', ' }}</div>{% endif %}</div>
             <div class="col-md-3">{{ form.ESTADO_CIVIL.label_tag }}{{ form.ESTADO_CIVIL }}</div>
             <div class="col-md-3">{{ form.TELEFONO.label_tag }}{{ form.TELEFONO }}</div>
-            <div class="col-md-3">{{ form.CELULAR.label_tag }}{{ form.CELULAR }}</div>
+            <div class="col-md-3 is-required"><label for="{{ form.CELULAR.id_for_label }}" class="form-label fw-semibold">{{ form.CELULAR.label }}<span class="required-star">*</span></label>{{ form.CELULAR }}<div class="invalid-feedback">Ingrese un número de celular.</div>{% if form.CELULAR.errors %}<div class="field-error">{{ form.CELULAR.errors|join:', ' }}</div>{% endif %}</div>
             <div class="col-md-6">{{ form.EMAIL.label_tag }}{{ form.EMAIL }}{% if form.EMAIL.help_text %}<div class="form-text">{{ form.EMAIL.help_text|safe }}</div>{% endif %}{% if form.EMAIL.errors %}<div class="text-danger small mt-1">{{ form.EMAIL.errors|join:", " }}</div>{% endif %}</div>
-            <div class="col-md-6">{{ form.FOTO_CARNET.label_tag }}{{ form.FOTO_CARNET }}</div>
-            <div class="col-md-6">{{ form.DOMICILIO_ACTUAL.label_tag }}{{ form.DOMICILIO_ACTUAL }}</div>
-            <div class="col-md-3">{{ form.BARRIO.label_tag }}{{ form.BARRIO }}</div>
-            <div class="col-md-3">{{ form.CIUDAD.label_tag }}{{ form.CIUDAD }}</div>
+            <div class="col-md-6 is-required"><label for="{{ form.FOTO_CARNET.id_for_label }}" class="form-label fw-semibold">{{ form.FOTO_CARNET.label }}<span class="required-star">*</span></label>{{ form.FOTO_CARNET }}<div class="invalid-feedback">Adjunte la foto carnet.</div>{% if form.FOTO_CARNET.errors %}<div class="field-error">{{ form.FOTO_CARNET.errors|join:', ' }}</div>{% endif %}<div class="form-text">Cargue una foto tipo carnet, nítida y reciente.</div></div>
+            <div class="col-md-6 is-required"><label for="{{ form.DOMICILIO_ACTUAL.id_for_label }}" class="form-label fw-semibold">{{ form.DOMICILIO_ACTUAL.label }}<span class="required-star">*</span></label>{{ form.DOMICILIO_ACTUAL }}<div class="invalid-feedback">Ingrese el domicilio actual.</div>{% if form.DOMICILIO_ACTUAL.errors %}<div class="field-error">{{ form.DOMICILIO_ACTUAL.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-3 is-required"><label for="{{ form.BARRIO.id_for_label }}" class="form-label fw-semibold">{{ form.BARRIO.label }}<span class="required-star">*</span></label>{{ form.BARRIO }}<div class="invalid-feedback">Ingrese el barrio.</div>{% if form.BARRIO.errors %}<div class="field-error">{{ form.BARRIO.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-3 is-required"><label for="{{ form.CIUDAD.id_for_label }}" class="form-label fw-semibold">{{ form.CIUDAD.label }}<span class="required-star">*</span></label>{{ form.CIUDAD }}<div class="invalid-feedback">Ingrese la ciudad.</div>{% if form.CIUDAD.errors %}<div class="field-error">{{ form.CIUDAD.errors|join:', ' }}</div>{% endif %}</div>
             <div class="col-12"><div class="form-check mt-2">{{ form.ACTIVO }} <label class="form-check-label" for="{{ form.ACTIVO.id_for_label }}">Funcionario activo</label></div></div>
         </div>
 
         <h5 class="border-bottom pb-2 mt-4 mb-3">2. Datos laborales</h5>
         <div class="alert alert-light border small text-muted mb-3">Seleccioná el tipo de vínculo y completá únicamente los datos que correspondan.</div>
         <div class="card border-0 bg-light-subtle mb-3"><div class="card-body py-3">
-            <label class="form-label fw-semibold mb-2">Tipo de vínculo</label>
+            <label class="form-label fw-semibold mb-2">Tipo de vínculo <span class="required-star">*</span></label>
             <div class="d-flex flex-wrap gap-3" id="tipo-vinculo-group">
                 {% for value, label in form.TIPO_VINCULO.field.choices %}{% if value %}
                 <div class="form-check form-check-inline">
-                    <input class="form-check-input" type="radio" name="{{ form.TIPO_VINCULO.html_name }}" id="tipo_vinculo_{{ value|lower }}" value="{{ value }}" {% if form.TIPO_VINCULO.value == value %}checked{% endif %}>
+                    <input class="form-check-input" type="radio" name="{{ form.TIPO_VINCULO.html_name }}" id="tipo_vinculo_{{ value|lower }}" value="{{ value }}" required {% if form.TIPO_VINCULO.value == value %}checked{% endif %}>
                     <label class="form-check-label" for="tipo_vinculo_{{ value|lower }}">{{ label }}</label>
                 </div>
                 {% endif %}{% endfor %}
@@ -456,29 +519,30 @@ document.addEventListener('DOMContentLoaded', function() {
             {% if form.TIPO_VINCULO.errors %}<div class="text-danger small mt-1">{{ form.TIPO_VINCULO.errors|join:', ' }}</div>{% endif %}
         </div></div>
         <div class="row g-3 mb-2">
-            <div class="col-12 col-lg-6"><div id="bloque-nombrado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">a) Nombrado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DECRETO.label_tag }}{{ form.NUMERO_DECRETO }}</div><div class="col-md-6">{{ form.FECHA_DECRETO.label_tag }}{{ form.FECHA_DECRETO }}</div></div></div></div></div>
-            <div class="col-12 col-lg-6"><div id="bloque-contratado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">b) Contratado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_RESOLUCION.label_tag }}{{ form.NUMERO_RESOLUCION }}</div><div class="col-md-6">{{ form.FECHA_RESOLUCION.label_tag }}{{ form.FECHA_RESOLUCION }}</div></div></div></div></div>
-            <div class="col-12 col-lg-6"><div id="bloque-pasantia" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">c) Pasantía</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
-            <div class="col-12 col-lg-6"><div id="bloque-practicante" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">d) Practicante</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-nombrado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">a) Nombrado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DECRETO.label_tag }}{{ form.NUMERO_DECRETO }}{% if form.NUMERO_DECRETO.errors %}<div class="field-error">{{ form.NUMERO_DECRETO.errors|join:', ' }}</div>{% endif %}</div><div class="col-md-6">{{ form.FECHA_DECRETO.label_tag }}{{ form.FECHA_DECRETO }}{% if form.FECHA_DECRETO.errors %}<div class="field-error">{{ form.FECHA_DECRETO.errors|join:', ' }}</div>{% endif %}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-contratado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">b) Contratado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_RESOLUCION.label_tag }}{{ form.NUMERO_RESOLUCION }}{% if form.NUMERO_RESOLUCION.errors %}<div class="field-error">{{ form.NUMERO_RESOLUCION.errors|join:', ' }}</div>{% endif %}</div><div class="col-md-6">{{ form.FECHA_RESOLUCION.label_tag }}{{ form.FECHA_RESOLUCION }}{% if form.FECHA_RESOLUCION.errors %}<div class="field-error">{{ form.FECHA_RESOLUCION.errors|join:', ' }}</div>{% endif %}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-pasantia" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">c) Pasantía</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}{% if form.NUMERO_DGRP.errors %}<div class="field-error">{{ form.NUMERO_DGRP.errors|join:', ' }}</div>{% endif %}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}{% if form.FECHA_DGRP.errors %}<div class="field-error">{{ form.FECHA_DGRP.errors|join:', ' }}</div>{% endif %}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-practicante" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">d) Practicante</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}{% if form.NUMERO_DGRP.errors %}<div class="field-error">{{ form.NUMERO_DGRP.errors|join:', ' }}</div>{% endif %}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}{% if form.FECHA_DGRP.errors %}<div class="field-error">{{ form.FECHA_DGRP.errors|join:', ' }}</div>{% endif %}</div></div></div></div></div>
         </div>
         <div class="row g-3 pt-2 border-top mt-1">
-            <div class="col-md-4">{{ form.CARGO.label_tag }}{{ form.CARGO }}</div>
-            <div class="col-md-4">{{ form.CATEGORIA.label_tag }}{{ form.CATEGORIA }}</div>
-            <div class="col-md-4">{{ form.SALARIO.label_tag }}{{ form.SALARIO }}</div>
-            <div class="col-md-4">{{ form.FECHA_INGRESO.label_tag }}{{ form.FECHA_INGRESO }}</div>
-            <div class="col-md-8">{{ form.LUGAR_TRABAJO.label_tag }}{{ form.LUGAR_TRABAJO }}</div>
+            <div class="col-md-4 is-required"><label for="{{ form.CARGO.id_for_label }}" class="form-label fw-semibold">{{ form.CARGO.label }}<span class="required-star">*</span></label>{{ form.CARGO }}<div class="invalid-feedback">Ingrese el cargo.</div>{% if form.CARGO.errors %}<div class="field-error">{{ form.CARGO.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-4 is-required"><label for="{{ form.CATEGORIA.id_for_label }}" class="form-label fw-semibold">{{ form.CATEGORIA.label }}<span class="required-star">*</span></label>{{ form.CATEGORIA }}<div class="invalid-feedback">Ingrese la categoría.</div>{% if form.CATEGORIA.errors %}<div class="field-error">{{ form.CATEGORIA.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-4 is-required"><label for="{{ form.SALARIO.id_for_label }}" class="form-label fw-semibold">{{ form.SALARIO.label }}<span class="required-star">*</span></label>{{ form.SALARIO }}<div class="invalid-feedback">Ingrese el salario.</div><div class="form-text section-subnote">Se muestra con separador de miles automáticamente.</div>{% if form.SALARIO.errors %}<div class="field-error">{{ form.SALARIO.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-4 is-required"><label for="{{ form.FECHA_INGRESO.id_for_label }}" class="form-label fw-semibold">{{ form.FECHA_INGRESO.label }}<span class="required-star">*</span></label>{{ form.FECHA_INGRESO }}<div class="invalid-feedback">Ingrese la fecha de ingreso.</div>{% if form.FECHA_INGRESO.errors %}<div class="field-error">{{ form.FECHA_INGRESO.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-8 is-required"><label for="{{ form.LUGAR_TRABAJO.id_for_label }}" class="form-label fw-semibold">{{ form.LUGAR_TRABAJO.label }}<span class="required-star">*</span></label>{{ form.LUGAR_TRABAJO }}<div class="invalid-feedback">Ingrese el lugar de trabajo.</div>{% if form.LUGAR_TRABAJO.errors %}<div class="field-error">{{ form.LUGAR_TRABAJO.errors|join:', ' }}</div>{% endif %}</div>
         </div>
 
         <h5 class="border-bottom pb-2 mt-4 mb-3">3. Datos académicos</h5>
+        <p class="section-subnote mb-3">Marcá al menos un nivel académico alcanzado. Si indicás nivel universitario, completá carrera y universidad.</p>
         <div class="row g-3">
             <div class="col-md-2"><div class="form-check mt-4">{{ form.NIVEL_PRIMARIO }} <label class="form-check-label" for="{{ form.NIVEL_PRIMARIO.id_for_label }}">Primario</label></div></div>
             <div class="col-md-2"><div class="form-check mt-4">{{ form.NIVEL_SECUNDARIO }} <label class="form-check-label" for="{{ form.NIVEL_SECUNDARIO.id_for_label }}">Secundario</label></div></div>
             <div class="col-md-2"><div class="form-check mt-4">{{ form.NIVEL_UNIVERSITARIO }} <label class="form-check-label" for="{{ form.NIVEL_UNIVERSITARIO.id_for_label }}">Universitario</label></div></div>
             <div class="col-md-4">{{ form.BACHILLER.label_tag }}{{ form.BACHILLER }}</div>
             <div class="col-md-2">{{ form.ANIO_BACHILLER.label_tag }}{{ form.ANIO_BACHILLER }}</div>
-            <div class="col-md-4">{{ form.CARRERA.label_tag }}{{ form.CARRERA }}</div>
+            <div class="col-md-4"><label for="{{ form.CARRERA.id_for_label }}" class="form-label fw-semibold">{{ form.CARRERA.label }}</label>{{ form.CARRERA }}{% if form.CARRERA.errors %}<div class="field-error">{{ form.CARRERA.errors|join:', ' }}</div>{% endif %}</div>
             <div class="col-md-2">{{ form.ANIO_CARRERA.label_tag }}{{ form.ANIO_CARRERA }}</div>
-            <div class="col-md-6">{{ form.UNIVERSIDAD.label_tag }}{{ form.UNIVERSIDAD }}</div>
+            <div class="col-md-6"><label for="{{ form.UNIVERSIDAD.id_for_label }}" class="form-label fw-semibold">{{ form.UNIVERSIDAD.label }}</label>{{ form.UNIVERSIDAD }}{% if form.UNIVERSIDAD.errors %}<div class="field-error">{{ form.UNIVERSIDAD.errors|join:', ' }}</div>{% endif %}</div>
             <div class="col-md-4">{{ form.POSTGRADOS.label_tag }}{{ form.POSTGRADOS }}</div>
             <div class="col-md-4">{{ form.MAESTRIAS.label_tag }}{{ form.MAESTRIAS }}</div>
             <div class="col-md-4">{{ form.DOCTORADOS.label_tag }}{{ form.DOCTORADOS }}</div>
@@ -488,12 +552,12 @@ document.addEventListener('DOMContentLoaded', function() {
         <h5 class="border-bottom pb-2 mt-4 mb-3">4. Historial médico y emergencia</h5>
         <div class="row g-3">
             <div class="col-md-6">{{ form.ALERGIAS_ENFERMEDADES.label_tag }}{{ form.ALERGIAS_ENFERMEDADES }}</div>
-            <div class="col-md-3">{{ form.GRUPO_SANGUINEO.label_tag }}{{ form.GRUPO_SANGUINEO }}</div>
+            <div class="col-md-3 is-required"><label for="{{ form.GRUPO_SANGUINEO.id_for_label }}" class="form-label fw-semibold">{{ form.GRUPO_SANGUINEO.label }}<span class="required-star">*</span></label>{{ form.GRUPO_SANGUINEO }}<div class="invalid-feedback">Seleccione el grupo sanguíneo.</div>{% if form.GRUPO_SANGUINEO.errors %}<div class="field-error">{{ form.GRUPO_SANGUINEO.errors|join:', ' }}</div>{% endif %}</div>
             <div class="col-md-3"><div class="form-check mt-4">{{ form.TIENE_SEGURO_MEDICO }} <label class="form-check-label" for="{{ form.TIENE_SEGURO_MEDICO.id_for_label }}">Posee seguro médico</label></div></div>
             <div class="col-md-6">{{ form.SANATORIO.label_tag }}{{ form.SANATORIO }}</div>
             <div class="col-md-6">{{ form.TELEFONO_SANATORIO.label_tag }}{{ form.TELEFONO_SANATORIO }}</div>
-            <div class="col-md-6">{{ form.EMERGENCIA_NOMBRE_1.label_tag }}{{ form.EMERGENCIA_NOMBRE_1 }}</div>
-            <div class="col-md-6">{{ form.EMERGENCIA_TELEFONO_1.label_tag }}{{ form.EMERGENCIA_TELEFONO_1 }}</div>
+            <div class="col-md-6 is-required"><label for="{{ form.EMERGENCIA_NOMBRE_1.id_for_label }}" class="form-label fw-semibold">{{ form.EMERGENCIA_NOMBRE_1.label }}<span class="required-star">*</span></label>{{ form.EMERGENCIA_NOMBRE_1 }}<div class="invalid-feedback">Ingrese un contacto de emergencia.</div>{% if form.EMERGENCIA_NOMBRE_1.errors %}<div class="field-error">{{ form.EMERGENCIA_NOMBRE_1.errors|join:', ' }}</div>{% endif %}</div>
+            <div class="col-md-6 is-required"><label for="{{ form.EMERGENCIA_TELEFONO_1.id_for_label }}" class="form-label fw-semibold">{{ form.EMERGENCIA_TELEFONO_1.label }}<span class="required-star">*</span></label>{{ form.EMERGENCIA_TELEFONO_1 }}<div class="invalid-feedback">Ingrese el teléfono del contacto de emergencia.</div>{% if form.EMERGENCIA_TELEFONO_1.errors %}<div class="field-error">{{ form.EMERGENCIA_TELEFONO_1.errors|join:', ' }}</div>{% endif %}</div>
             <div class="col-md-6">{{ form.EMERGENCIA_NOMBRE_2.label_tag }}{{ form.EMERGENCIA_NOMBRE_2 }}</div>
             <div class="col-md-6">{{ form.EMERGENCIA_TELEFONO_2.label_tag }}{{ form.EMERGENCIA_TELEFONO_2 }}</div>
         </div>
@@ -540,7 +604,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <img id="croquis-preview-img" src="{% if google_maps_enabled and form.LATITUD.value and form.LONGITUD.value %}https://maps.googleapis.com/maps/api/staticmap?center={{ form.LATITUD.value }},{{ form.LONGITUD.value }}&zoom=18&size=900x420&scale=2&maptype=satellite&markers=color:red%7C{{ form.LATITUD.value }},{{ form.LONGITUD.value }}&key={{ google_maps_api_key|urlencode }}{% endif %}" class="{% if not google_maps_enabled or not form.LATITUD.value or not form.LONGITUD.value %}d-none{% endif %}" alt="Vista previa del croquis">
                     <p id="croquis-coords" class="croquis-meta mt-2 mb-2">{% if form.LATITUD.value and form.LONGITUD.value %}Latitud: {{ form.LATITUD.value }} · Longitud: {{ form.LONGITUD.value }}{% else %}Aún no se seleccionó una ubicación en el mapa.{% endif %}</p>
                     <a id="croquis-google-link" class="btn btn-sm btn-outline-primary mb-3 {% if not form.LATITUD.value or not form.LONGITUD.value %}d-none{% endif %}" href="{% if form.LATITUD.value and form.LONGITUD.value %}https://www.google.com/maps?q={{ form.LATITUD.value }},{{ form.LONGITUD.value }}{% else %}#{% endif %}" target="_blank" rel="noopener noreferrer">Abrir ubicación en Google Maps</a>
-                    <div>{{ form.CROQUIS_REFERENCIA.label_tag }}{{ form.CROQUIS_REFERENCIA }}</div>
+                    <div class="is-required"><label for="{{ form.CROQUIS_REFERENCIA.id_for_label }}" class="form-label fw-semibold">{{ form.CROQUIS_REFERENCIA.label }}<span class="required-star">*</span></label>{{ form.CROQUIS_REFERENCIA }}<div class="invalid-feedback">Ingrese una referencia del domicilio o seleccione el punto en el mapa.</div>{% if form.CROQUIS_REFERENCIA.errors %}<div class="field-error">{{ form.CROQUIS_REFERENCIA.errors|join:', ' }}</div>{% endif %}</div>
                     <div class="form-text mt-2">La dirección y el enlace de Google Maps se completan automáticamente al seleccionar un punto en el mapa. Igual podés editar el texto manualmente.</div>
                 </div>
             </div>
