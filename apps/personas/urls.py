@@ -8,6 +8,7 @@ from .views_web import (
     PersonaCreateView,
     PersonaUpdateView,
     PersonaPrintView,
+    PersonaDeleteView,
     MapaPersonasView,
     MiFichaView,
     MiFichaUpdateView,
@@ -28,5 +29,6 @@ urlpatterns = [
     path('mi-ficha/imprimir/', MiFichaPrintView.as_view(), name='mi-ficha-print'),
     path('<int:pk>/', PersonaDetailView.as_view(), name='persona-detail'),
     path('<int:pk>/editar/', PersonaUpdateView.as_view(), name='persona-update'),
+    path('<int:pk>/eliminar/', PersonaDeleteView.as_view(), name='persona-delete'),
     path('<int:pk>/imprimir/', PersonaPrintView.as_view(), name='persona-print'),
 ]

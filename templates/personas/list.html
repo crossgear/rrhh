@@ -85,13 +85,19 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{% url 'persona-detail' persona.id %}" class="btn btn-sm btn-outline-info">
+                                                                <a href="{% url 'persona-detail' persona.id %}" class="btn btn-sm btn-outline-info" title="Ver ficha">
                                     <i class="bi bi-eye"></i>
                                 </a>
                                 {% if user.es_rrhh %}
-                                <a href="{% url 'persona-update' persona.id %}" class="btn btn-sm btn-outline-warning">
+                                <a href="{% url 'persona-update' persona.id %}" class="btn btn-sm btn-outline-warning" title="Editar ficha">
                                     <i class="bi bi-pencil"></i>
                                 </a>
+                                <form method="post" action="{% url 'persona-delete' persona.id %}" class="d-inline">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar registro" onclick="return confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.');">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
                                 {% endif %}
                             </td>
                         </tr>

@@ -433,7 +433,7 @@ document.addEventListener('DOMContentLoaded', function() {
             <div class="col-md-3">{{ form.ESTADO_CIVIL.label_tag }}{{ form.ESTADO_CIVIL }}</div>
             <div class="col-md-3">{{ form.TELEFONO.label_tag }}{{ form.TELEFONO }}</div>
             <div class="col-md-3">{{ form.CELULAR.label_tag }}{{ form.CELULAR }}</div>
-            <div class="col-md-6">{{ form.EMAIL.label_tag }}{{ form.EMAIL }}</div>
+            <div class="col-md-6">{{ form.EMAIL.label_tag }}{{ form.EMAIL }}{% if form.EMAIL.help_text %}<div class="form-text">{{ form.EMAIL.help_text|safe }}</div>{% endif %}{% if form.EMAIL.errors %}<div class="text-danger small mt-1">{{ form.EMAIL.errors|join:", " }}</div>{% endif %}</div>
             <div class="col-md-6">{{ form.FOTO_CARNET.label_tag }}{{ form.FOTO_CARNET }}</div>
             <div class="col-md-6">{{ form.DOMICILIO_ACTUAL.label_tag }}{{ form.DOMICILIO_ACTUAL }}</div>
             <div class="col-md-3">{{ form.BARRIO.label_tag }}{{ form.BARRIO }}</div>

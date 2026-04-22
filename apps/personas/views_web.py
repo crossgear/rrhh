@@ -299,6 +299,15 @@ class PersonaUpdateView(RRHHRequiredMixin, PersonaFormMixin, View):
         return render(request, self.template_name, self._form_context(form=form, titulo='Editar Ficha Personal', persona=persona, owner_mode=False))
 
 
+class PersonaDeleteView(RRHHRequiredMixin, View):
+    def post(self, request, pk):
+        persona = get_object_or_404(Persona, pk=pk)
+        nombre = persona.nombre_completo if hasattr(persona, 'nombre_completo') else f"{persona.NOMBRES} {persona.APELLIDOS}".strip()
+        persona.delete()
+        messages.success(request, f'Registro eliminado correctamente: {nombre}.')
+        return redirect('persona-list')
+
+
 class MiFichaView(LoginRequiredMixin, PersonaContextMixin, TemplateView):
     template_name = 'personas/detail.html'
 

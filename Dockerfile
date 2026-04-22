@@ -37,7 +37,7 @@ COPY . /app/
 RUN mkdir -p /app/logs /app/media/fotos_carnet && chmod -R 755 /app/logs && chmod -R 777 /app/media && touch /app/logs/rrhh.log && chown -R www-data:www-data /app/logs /app/media
 
 # Recolectar archivos estáticos
-RUN python manage.py collectstatic --noinput --clear
+# RUN python manage.py collectstatic --noinput --clear
 
 # Crear usuario no-root para ejecutar
 RUN chown -R www-data:www-data /app

@@ -22,7 +22,7 @@ class FichaPersonalForm(forms.Form):
     ESTADO_CIVIL = forms.ChoiceField(label='Estado civil', choices=Persona.ESTADO_CIVIL_CHOICES, required=False)
     TELEFONO = forms.CharField(label='Teléfono', max_length=20, required=False)
     CELULAR = forms.CharField(label='Celular', max_length=20, required=False)
-    EMAIL = forms.EmailField(label='Email', required=False)
+    EMAIL = forms.EmailField(label='Correo institucional', required=False)
     DOMICILIO_ACTUAL = forms.CharField(label='Domicilio actual', max_length=200, required=False)
     BARRIO = forms.CharField(label='Barrio', max_length=100, required=False)
     CIUDAD = forms.CharField(label='Ciudad', max_length=100, required=False)
@@ -112,6 +112,10 @@ class FichaPersonalForm(forms.Form):
                 css = 'form-select'
             widget.attrs.setdefault('class', css)
 
+        if 'EMAIL' in self.fields:
+            self.fields['EMAIL'].widget.attrs.setdefault('placeholder', 'usuario@run.gov.py')
+            self.fields['EMAIL'].help_text = 'Ingrese su correo institucional. Si escribe solo el usuario, se completará @run.gov.py automáticamente.'
+
     def _load_from_instance(self, persona):
         extra = persona.FICHA_EXTRA or {}
         self.initial.update({
@@ -196,6 +200,14 @@ class FichaPersonalForm(forms.Form):
         except Exception:
             pass
 
+
+    def clean_EMAIL(self):
+        value = (self.cleaned_data.get('EMAIL') or '').strip().lower()
+        if not value:
+            return value
+        if '@' not in value:
+            value = f"{value}@run.gov.py"
+        return value
 
     def clean(self):
         cleaned_data = super().clean()

@@ -27,7 +27,7 @@
             <p><strong>Estado civil:</strong> {{ persona.get_ESTADO_CIVIL_display }}</p>
             <p><strong>Teléfono:</strong> {{ persona.TELEFONO|default:'-' }}</p>
             <p><strong>Celular:</strong> {{ extra.CELULAR|default:'-' }}</p>
-            <p><strong>Email:</strong> {{ persona.EMAIL|default:'-' }}</p>
+            <p><strong>Correo institucional:</strong> {{ persona.EMAIL|default:'-' }}</p>
             <p><strong>Domicilio:</strong> {{ extra.DOMICILIO_ACTUAL|default:'-' }}</p>
             <p><strong>Barrio / Ciudad:</strong> {{ extra.BARRIO|default:'-' }} / {{ extra.CIUDAD|default:'-' }}</p>
             {% if persona.FOTO_CARNET %}<p><strong>Foto:</strong><br><img src="{{ persona.FOTO_CARNET.url }}" alt="Foto carnet" style="max-width:180px" class="img-thumbnail"></p>{% endif %}
