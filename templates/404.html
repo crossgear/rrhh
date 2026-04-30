@@ -1,0 +1,14 @@
+{% extends 'base/base.html' %}
+
+{% block title %}Página no encontrada - Sistema RRHH{% endblock %}
+
+{% block content %}
+<div class="text-center py-5">
+    <h1 class="display-1 text-muted">404</h1>
+    <h3 class="mb-4">Página no encontrada</h3>
+    <p class="lead mb-4">Lo sentimos, la página que busca no existe o ha sido movida.</p>
+    <a href="{% url 'dashboard-index' %}" class="btn btn-primary btn-lg">
+        <i class="bi bi-house"></i> Volver al Dashboard
+    </a>
+</div>
+{% endblock %}

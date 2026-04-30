@@ -1,0 +1,176 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .required-hint {
+        border: 1px solid #dbeafe;
+        background: #f0f9ff;
+        color: #1e3a8a;
+        border-radius: 12px;
+        padding: 12px 14px;
+        margin-bottom: 18px;
+    }
+
+    .required-mark {
+        color: #dc3545;
+        font-weight: 700;
+    }
+
+    .needs-validation .form-control:required,
+    .needs-validation .form-select:required {
+        border-left: 3px solid #dc3545;
+    }
+
+    .needs-validation.was-validated .form-control:invalid,
+    .needs-validation.was-validated .form-select:invalid {
+        border-color: #dc3545;
+        background-color: #fff5f5;
+        box-shadow: none;
+    }
+
+    .needs-validation.was-validated .form-control:valid,
+    .needs-validation.was-validated .form-select:valid {
+        border-color: #198754;
+        box-shadow: none;
+    }
+
+    .invalid-feedback {
+        display: none;
+    }
+
+    .needs-validation.was-validated .form-control:invalid ~ .invalid-feedback,
+    .needs-validation.was-validated .form-select:invalid ~ .invalid-feedback {
+        display: block;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0"><i class="bi bi-person-badge"></i> {{ titulo }}</h4>
+            </div>
+            <div class="card-body">
+                <div class="required-hint">
+                    Los campos marcados con <span class="required-mark">*</span> son obligatorios.
+                </div>
+
+                <form method="post" novalidate class="needs-validation">
+                    {% csrf_token %}
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="CI_NUMERO" class="form-label">Número de CI <span class="required-mark">*</span></label>
+                                <input type="text" name="CI_NUMERO" class="form-control"
+                                       id="CI_NUMERO" value="{{ form.CI_NUMERO.value|default:'' }}" required>
+                                <div class="invalid-feedback">Ingresá el número de CI.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label class="form-label">Estado</label>
+                                <div class="form-check mt-2">
+                                    <input type="checkbox" class="form-check-input" name="ACTIVO"
+                                           id="ACTIVO" {% if form.ACTIVO.value %}checked{% endif %}>
+                                    <label class="form-check-label" for="ACTIVO">Activo</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="NOMBRES" class="form-label">Nombres <span class="required-mark">*</span></label>
+                                <input type="text" name="NOMBRES" class="form-control"
+                                       id="NOMBRES" value="{{ form.NOMBRES.value|default:'' }}" required>
+                                <div class="invalid-feedback">Ingresá los nombres.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="APELLIDOS" class="form-label">Apellidos <span class="required-mark">*</span></label>
+                                <input type="text" name="APELLIDOS" class="form-control"
+                                       id="APELLIDOS" value="{{ form.APELLIDOS.value|default:'' }}" required>
+                                <div class="invalid-feedback">Ingresá los apellidos.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="FECHA_NACIMIENTO" class="form-label">Fecha de Nacimiento <span class="required-mark">*</span></label>
+                                <input type="date" name="FECHA_NACIMIENTO" class="form-control"
+                                       id="FECHA_NACIMIENTO" value="{{ form.FECHA_NACIMIENTO.value|default:'' }}" required>
+                                <div class="invalid-feedback">Seleccioná la fecha de nacimiento.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="ESTADO_CIVIL" class="form-label">Estado Civil</label>
+                                <select name="ESTADO_CIVIL" class="form-select" id="ESTADO_CIVIL">
+                                    <option value="">-- Seleccione --</option>
+                                    {% for value, label in estado_civil_choices %}
+                                        <option value="{{ value }}"
+                                                {% if form.ESTADO_CIVIL.value == value %}selected{% endif %}>
+                                            {{ label }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="TELEFONO" class="form-label">Teléfono</label>
+                                <input type="text" name="TELEFONO" class="form-control"
+                                       id="TELEFONO" value="{{ form.TELEFONO.value|default:'' }}">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="EMAIL" class="form-label">Correo institucional</label>
+                                <input type="email" name="EMAIL" class="form-control"
+                                       id="EMAIL" value="{{ form.EMAIL.value|default:'' }}" placeholder="usuario@run.gov.py">
+                                <div class="form-text">Ingrese su correo institucional. Si escribe solo el usuario, se completará <strong>@run.gov.py</strong>.</div>
+                                <div class="invalid-feedback">Ingresá un correo válido.</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'persona-list' %}" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle"></i> Guardar
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    'use strict';
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.from(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+})();
+</script>
+{% endblock %}

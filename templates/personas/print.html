@@ -1,0 +1,367 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ficha personal - {{ persona.nombre_completo }}</title>
+    <style>
+        :root {
+            --border: #1f1f1f;
+            --soft: #f3f4f6;
+            --text: #111827;
+            --muted: #4b5563;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #eef1f4;
+            color: var(--text);
+        }
+        .print-actions {
+            max-width: 210mm;
+            margin: 14px auto 0;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 0 10px;
+        }
+        .btn {
+            border: 1px solid #cbd5e1;
+            background: #fff;
+            color: #111827;
+            border-radius: 6px;
+            padding: 9px 14px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .btn.primary {
+            background: #0d6efd;
+            color: #fff;
+            border-color: #0d6efd;
+        }
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 10px auto 22px;
+            background: #fff;
+            box-shadow: 0 3px 16px rgba(0,0,0,.10);
+            padding: 10mm 10mm 12mm;
+        }
+        .header-image {
+            width: 100%;
+            max-height: 34mm;
+            object-fit: contain;
+            display: block;
+            margin-bottom: 5mm;
+        }
+        .doc-title {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            letter-spacing: .8px;
+            margin-bottom: 4mm;
+        }
+        .section-title {
+            background: var(--soft);
+            border: 1px solid var(--border);
+            font-weight: 700;
+            font-size: 12px;
+            padding: 6px 8px;
+            margin: 0 0 8px;
+        }
+        .section { margin-bottom: 9px; }
+        .personal-layout {
+            display: grid;
+            grid-template-columns: 1fr 42mm;
+            gap: 8px;
+            align-items: start;
+        }
+        .grid {
+            display: grid;
+            gap: 6px 8px;
+        }
+        .grid-3 { grid-template-columns: repeat(3, 1fr); }
+        .grid-2 { grid-template-columns: repeat(2, 1fr); }
+        .grid-1 { grid-template-columns: 1fr; }
+        .field {
+            border: 1px solid var(--border);
+            min-height: 44px;
+            padding: 5px 7px 6px;
+            break-inside: avoid;
+        }
+        .field.large { min-height: 62px; }
+        .field.xlarge { min-height: 84px; }
+        .label {
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--muted);
+            margin-bottom: 3px;
+            text-transform: uppercase;
+        }
+        .value {
+            display: block;
+            font-size: 12px;
+            line-height: 1.35;
+            word-break: break-word;
+        }
+        .photo-box {
+            border: 1px solid var(--border);
+            min-height: 58mm;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            align-items: center;
+            padding: 5px;
+        }
+        .photo-box .label { width: 100%; text-align: center; }
+        .photo-box img {
+            width: 100%;
+            height: 48mm;
+            object-fit: contain;
+        }
+        .photo-placeholder {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6b7280;
+            font-size: 12px;
+            width: 100%;
+            height: 48mm;
+            border: 1px dashed #cbd5e1;
+        }
+
+        .simple-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5px;
+        }
+        .simple-table th,
+        .simple-table td {
+            border: 1px solid var(--border);
+            padding: 4px 5px;
+            vertical-align: top;
+        }
+        .simple-table th {
+            background: var(--soft);
+            font-weight: bold;
+        }
+        .children-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 12px;
+        }
+        .children-table th,
+        .children-table td {
+            border: 1px solid var(--border);
+            padding: 5px 7px;
+            text-align: left;
+        }
+        .children-table th {
+            background: var(--soft);
+            font-size: 10px;
+            text-transform: uppercase;
+        }
+        .signature-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 8px;
+            margin-top: 8px;
+        }
+        @media print {
+            body { background: #fff; }
+            .print-actions { display: none !important; }
+            .page {
+                margin: 0;
+                width: auto;
+                min-height: auto;
+                box-shadow: none;
+                padding: 6mm 7mm 8mm;
+            }
+            @page {
+                size: A4 portrait;
+                margin: 6mm;
+            }
+        }
+    </style>
+</head>
+<body>
+{% with extra=extra %}
+<div class="print-actions">
+    <button class="btn primary" onclick="window.print()">Imprimir</button>
+    <button class="btn" onclick="window.close()">Cerrar</button>
+</div>
+<div class="page">
+    <img src="{% static 'img/encabezado_impresion.png' %}" alt="Encabezado institucional" class="header-image">
+    <div class="doc-title">FICHA PERSONAL</div>
+
+    <div class="section">
+        <div class="section-title">1. DATOS PERSONALES</div>
+        <div class="personal-layout">
+            <div class="grid grid-3">
+                <div class="field"><span class="label">C.I. N°</span><span class="value">{{ persona.CI_NUMERO|default:"-" }}</span></div>
+                <div class="field"><span class="label">Nombres</span><span class="value">{{ persona.NOMBRES|default:"-" }}</span></div>
+                <div class="field"><span class="label">Apellidos</span><span class="value">{{ persona.APELLIDOS|default:"-" }}</span></div>
+                <div class="field"><span class="label">Fecha de nacimiento</span><span class="value">{{ persona.FECHA_NACIMIENTO|date:"d/m/Y"|default:"-" }}</span></div>
+                <div class="field"><span class="label">Edad</span><span class="value">{{ persona.edad|default:"-" }}</span></div>
+                <div class="field"><span class="label">Estado civil</span><span class="value">{{ persona.get_ESTADO_CIVIL_display|default:"-" }}</span></div>
+                <div class="field large"><span class="label">Domicilio actual</span><span class="value">{{ extra.DOMICILIO_ACTUAL|default:"-" }}</span></div>
+                <div class="field"><span class="label">Barrio</span><span class="value">{{ extra.BARRIO|default:"-" }}</span></div>
+                <div class="field"><span class="label">Ciudad</span><span class="value">{{ extra.CIUDAD|default:"-" }}</span></div>
+                <div class="field"><span class="label">Teléfono</span><span class="value">{{ persona.TELEFONO|default:"-" }}</span></div>
+                <div class="field"><span class="label">Celular</span><span class="value">{{ extra.CELULAR|default:"-" }}</span></div>
+                <div class="field"><span class="label">Correo institucional</span><span class="value">{{ persona.EMAIL|default:"-" }}</span></div>
+            </div>
+            <div class="photo-box">
+                <span class="label">Foto carnet</span>
+                {% if persona.FOTO_CARNET %}
+                    <img src="{{ persona.FOTO_CARNET.url }}" alt="Foto carnet">
+                {% else %}
+                    <div class="photo-placeholder">Sin foto</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">2. DATOS LABORALES</div>
+        <div class="grid grid-3">
+            <div class="field"><span class="label">Tipo de vínculo</span><span class="value">{% if datos_laborales %}{{ datos_laborales.get_TIPO_VINCULO_display|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Institución de origen</span><span class="value">{% if datos_laborales %}{{ datos_laborales.institucion_origen_label|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Decreto N°</span><span class="value">{% if datos_laborales %}{{ datos_laborales.NUMERO_DECRETO|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Fecha decreto</span><span class="value">{% if datos_laborales %}{{ datos_laborales.FECHA_DECRETO|date:"d/m/Y"|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Resolución N°</span><span class="value">{% if datos_laborales %}{{ datos_laborales.NUMERO_RESOLUCION|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Fecha resolución</span><span class="value">{% if datos_laborales %}{{ datos_laborales.FECHA_RESOLUCION|date:"d/m/Y"|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">D.G.R.P. N°</span><span class="value">{{ extra.NUMERO_DGRP|default:"-" }}</span></div>
+            <div class="field"><span class="label">Fecha D.G.R.P.</span><span class="value">{{ extra.FECHA_DGRP|default:"-" }}</span></div>
+            {% if datos_laborales and datos_laborales.TIPO_VINCULO == 'COMISIONADO' %}
+            <div class="field"><span class="label">Destino comisión</span><span class="value">{{ datos_laborales.INSTITUCION_DESTINO_COMISION|default:"-" }}</span></div>
+            <div class="field"><span class="label">Resolución comisión</span><span class="value">{{ datos_laborales.NUMERO_RESOLUCION_COMISION|default:"-" }}</span></div>
+            <div class="field"><span class="label">Periodo comisión</span><span class="value">{{ datos_laborales.periodo_comision|default:"-" }}</span></div>
+            {% endif %}
+            <div class="field"><span class="label">Cargo</span><span class="value">{% if datos_laborales %}{{ datos_laborales.CARGO|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Categoría</span><span class="value">{{ extra.CATEGORIA|default:"-" }}</span></div>
+            <div class="field"><span class="label">Salario</span><span class="value">{% if datos_laborales and datos_laborales.SALARIO %}Gs. {{ datos_laborales.SALARIO|floatformat:0 }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Fecha ingreso</span><span class="value">{% if datos_laborales %}{{ datos_laborales.FECHA_INGRESO|date:"d/m/Y"|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Antigüedad institución de origen</span><span class="value">{{ persona.antiguedad_origen|default:"-" }}</span></div>
+            <div class="field"><span class="label">Antigüedad RUN</span><span class="value">{{ persona.antiguedad_run|default:"-" }}</span></div>
+            <div class="field large"><span class="label">Lugar de trabajo</span><span class="value">{% if datos_laborales %}{{ datos_laborales.DEPENDENCIA|default:"-" }}{% else %}-{% endif %}</span></div>
+        </div>
+    </div>
+
+    
+    <div class="section">
+        <div class="section-title">INTERINATOS</div>
+        {% if interinatos %}
+            <table class="simple-table">
+                <thead>
+                    <tr>
+                        <th>Cargo interino</th>
+                        <th>Dependencia</th>
+                        <th>Resolución</th>
+                        <th>Periodo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for interinato in interinatos %}
+                    <tr>
+                        <td>{{ interinato.cargo_interino }}</td>
+                        <td>{{ interinato.dependencia|default:"-" }}</td>
+                        <td>{{ interinato.numero_resolucion }}{% if interinato.fecha_resolucion %} · {{ interinato.fecha_resolucion|date:"d/m/Y" }}{% endif %}</td>
+                        <td>{{ interinato.fecha_inicio|date:"d/m/Y" }} al {{ interinato.fecha_fin|date:"d/m/Y" }}</td>
+                        <td>{{ interinato.estado_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="field"><span class="value">Sin interinatos registrados.</span></div>
+        {% endif %}
+    </div>
+
+    <div class="section">
+        <div class="section-title">3. DATOS ACADÉMICOS</div>
+        <div class="grid grid-3">
+            <div class="field"><span class="label">Nivel primario</span><span class="value">{% if extra.NIVEL_PRIMARIO %}Sí{% else %}No{% endif %}</span></div>
+            <div class="field"><span class="label">Nivel secundario</span><span class="value">{% if extra.NIVEL_SECUNDARIO %}Sí{% else %}No{% endif %}</span></div>
+            <div class="field"><span class="label">Nivel universitario</span><span class="value">{% if extra.NIVEL_UNIVERSITARIO %}Sí{% else %}No{% endif %}</span></div>
+            <div class="field"><span class="label">Bachiller</span><span class="value">{{ extra.BACHILLER|default:"-" }}</span></div>
+            <div class="field"><span class="label">Año bachiller</span><span class="value">{{ extra.ANIO_BACHILLER|default:"-" }}</span></div>
+            <div class="field"><span class="label">Carrera</span><span class="value">{% if datos_academicos %}{{ datos_academicos.PROFESION|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field large"><span class="label">Universidad</span><span class="value">{% if datos_academicos %}{{ datos_academicos.UNIVERSIDAD|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Postgrados</span><span class="value">{{ extra.POSTGRADOS|default:"-" }}</span></div>
+            <div class="field"><span class="label">Maestrías</span><span class="value">{{ extra.MAESTRIAS|default:"-" }}</span></div>
+            <div class="field"><span class="label">Doctorados</span><span class="value">{{ extra.DOCTORADOS|default:"-" }}</span></div>
+            <div class="field xlarge" style="grid-column: span 2;"><span class="label">Otros estudios</span><span class="value">{{ extra.OTROS_ESTUDIOS|default:"-" }}</span></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">4. HISTORIAL MÉDICO</div>
+        <div class="grid grid-3">
+            <div class="field xlarge" style="grid-column: span 2;"><span class="label">Alergias o enfermedades</span><span class="value">{{ extra.ALERGIAS_ENFERMEDADES|default:"-" }}</span></div>
+            <div class="field"><span class="label">Grupo sanguíneo</span><span class="value">{{ extra.GRUPO_SANGUINEO|default:"-" }}</span></div>
+            <div class="field"><span class="label">Seguro médico</span><span class="value">{% if extra.TIENE_SEGURO_MEDICO %}Sí{% else %}No{% endif %}</span></div>
+            <div class="field"><span class="label">Sanatorio</span><span class="value">{{ extra.SANATORIO|default:"-" }}</span></div>
+            <div class="field"><span class="label">Teléfono sanatorio</span><span class="value">{{ extra.TELEFONO_SANATORIO|default:"-" }}</span></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">5. EN CASO DE EMERGENCIA CONTACTAR A</div>
+        <div class="grid grid-2">
+            <div class="field"><span class="label">Nombre y apellidos 1</span><span class="value">{{ extra.EMERGENCIA_NOMBRE_1|default:"-" }}</span></div>
+            <div class="field"><span class="label">Teléfono 1</span><span class="value">{{ extra.EMERGENCIA_TELEFONO_1|default:"-" }}</span></div>
+            <div class="field"><span class="label">Nombre y apellidos 2</span><span class="value">{{ extra.EMERGENCIA_NOMBRE_2|default:"-" }}</span></div>
+            <div class="field"><span class="label">Teléfono 2</span><span class="value">{{ extra.EMERGENCIA_TELEFONO_2|default:"-" }}</span></div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="section-title">6. DATOS FAMILIARES</div>
+        <div class="grid grid-1" style="margin-bottom: 8px;">
+            <div class="field"><span class="label">Nombres y apellidos del padre</span><span class="value">{{ extra.NOMBRE_PADRE|default:"-" }}</span></div>
+            <div class="field"><span class="label">Nombres y apellidos de la madre</span><span class="value">{{ extra.NOMBRE_MADRE|default:"-" }}</span></div>
+            <div class="field"><span class="label">Nombres y apellidos del cónyuge</span><span class="value">{{ extra.NOMBRE_CONYUGE|default:"-" }}</span></div>
+        </div>
+        <table class="children-table">
+            <thead>
+                <tr>
+                    <th style="width: 65%;">Hijos/as</th>
+                    <th style="width: 35%;">Fecha de nacimiento</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% if extra.HIJO_1_NOMBRE or extra.HIJO_2_NOMBRE or extra.HIJO_3_NOMBRE or extra.HIJO_4_NOMBRE or extra.HIJO_5_NOMBRE or extra.HIJO_6_NOMBRE %}
+                    {% if extra.HIJO_1_NOMBRE %}<tr><td>{{ extra.HIJO_1_NOMBRE }}</td><td>{{ extra.HIJO_1_FECHA|default:"-" }}</td></tr>{% endif %}
+                    {% if extra.HIJO_2_NOMBRE %}<tr><td>{{ extra.HIJO_2_NOMBRE }}</td><td>{{ extra.HIJO_2_FECHA|default:"-" }}</td></tr>{% endif %}
+                    {% if extra.HIJO_3_NOMBRE %}<tr><td>{{ extra.HIJO_3_NOMBRE }}</td><td>{{ extra.HIJO_3_FECHA|default:"-" }}</td></tr>{% endif %}
+                    {% if extra.HIJO_4_NOMBRE %}<tr><td>{{ extra.HIJO_4_NOMBRE }}</td><td>{{ extra.HIJO_4_FECHA|default:"-" }}</td></tr>{% endif %}
+                    {% if extra.HIJO_5_NOMBRE %}<tr><td>{{ extra.HIJO_5_NOMBRE }}</td><td>{{ extra.HIJO_5_FECHA|default:"-" }}</td></tr>{% endif %}
+                    {% if extra.HIJO_6_NOMBRE %}<tr><td>{{ extra.HIJO_6_NOMBRE }}</td><td>{{ extra.HIJO_6_FECHA|default:"-" }}</td></tr>{% endif %}
+                {% else %}
+                    <tr><td>-</td><td>-</td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+
+    <div class="section">
+        <div class="section-title">7. OBSERVACIONES</div>
+        <div class="grid grid-1">
+            <div class="field xlarge"><span class="label">Observaciones</span><span class="value">{{ extra.OBSERVACIONES_FICHA|default:"-" }}</span></div>
+            <div class="field xlarge"><span class="label">Croquis / referencia del domicilio actual</span><span class="value">{{ extra.CROQUIS_REFERENCIA|default:"-"|urlize|linebreaksbr }}</span>{% if extra.LATITUD and extra.LONGITUD %}<div style="margin-top:8px;"><a href="https://www.google.com/maps?q={{ extra.LATITUD }},{{ extra.LONGITUD }}" target="_blank" rel="noopener noreferrer">Abrir ubicación en Google Maps</a></div>{% endif %}{% if extra.CROQUIS_MAP_URL %}<div style="margin-top:8px;"><img src="{{ extra.CROQUIS_MAP_URL }}" alt="Croquis domicilio" style="width:100%; max-height:210px; object-fit:cover; border:1px solid var(--border); border-radius:6px;"></div>{% endif %}</div>
+        </div>
+        <div class="signature-grid">
+            <div class="field"><span class="label">Aclaración</span><span class="value">{{ extra.FIRMA_ACLARACION|default:"-" }}</span></div>
+            <div class="field"><span class="label">Fecha</span><span class="value">{{ extra.FECHA_FIRMA|default:"-" }}</span></div>
+        </div>
+    </div>
+</div>
+{% endwith %}
+</body>
+</html>

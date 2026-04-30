@@ -1,0 +1,82 @@
+{% extends 'base/base.html' %}
+
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1"><i class="bi bi-person-badge"></i> {{ titulo }}</h2>
+        <p class="text-muted mb-0">{{ persona.nombre_completo }} · CI {{ persona.CI_NUMERO }}</p>
+    </div>
+    <a href="{% url 'persona-detail' persona.id %}" class="btn btn-outline-secondary">
+        <i class="bi bi-arrow-left"></i> Volver a la ficha
+    </a>
+</div>
+
+<div class="card shadow-sm border-0">
+    <div class="card-header bg-primary text-white">
+        <strong>Datos del interinato</strong>
+    </div>
+    <div class="card-body">
+        <div class="alert alert-info small">
+            Cargue la resolución que designa provisoriamente al funcionario. Los campos marcados con <span class="text-danger">*</span> son obligatorios.
+        </div>
+        <form method="post" enctype="multipart/form-data" novalidate>
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger">{{ form.non_field_errors }}</div>
+            {% endif %}
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Cargo interino <span class="text-danger">*</span></label>
+                    {{ form.cargo_interino }}
+                    {% if form.cargo_interino.errors %}<div class="text-danger small">{{ form.cargo_interino.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Dependencia / área</label>
+                    {{ form.dependencia }}
+                    {% if form.dependencia.errors %}<div class="text-danger small">{{ form.dependencia.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">N° de resolución <span class="text-danger">*</span></label>
+                    {{ form.numero_resolucion }}
+                    {% if form.numero_resolucion.errors %}<div class="text-danger small">{{ form.numero_resolucion.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Fecha de resolución</label>
+                    {{ form.fecha_resolucion }}
+                    {% if form.fecha_resolucion.errors %}<div class="text-danger small">{{ form.fecha_resolucion.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Resolución PDF <span class="text-danger">*</span></label>
+                    {{ form.archivo_resolucion }}
+                    <div class="form-text">Solo archivo PDF.</div>
+                    {% if form.archivo_resolucion.errors %}<div class="text-danger small">{{ form.archivo_resolucion.errors|join:', ' }}</div>{% endif %}
+                    {% if object and object.archivo_resolucion %}
+                        <div class="small mt-1">Actual: <a href="{{ object.archivo_resolucion.url }}" target="_blank">Ver PDF</a></div>
+                    {% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Fecha de inicio <span class="text-danger">*</span></label>
+                    {{ form.fecha_inicio }}
+                    {% if form.fecha_inicio.errors %}<div class="text-danger small">{{ form.fecha_inicio.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Fecha de fin <span class="text-danger">*</span></label>
+                    {{ form.fecha_fin }}
+                    {% if form.fecha_fin.errors %}<div class="text-danger small">{{ form.fecha_fin.errors|join:', ' }}</div>{% endif %}
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Observación</label>
+                    {{ form.observacion }}
+                    {% if form.observacion.errors %}<div class="text-danger small">{{ form.observacion.errors|join:', ' }}</div>{% endif %}
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'persona-detail' persona.id %}" class="btn btn-outline-secondary">Cancelar</a>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-save"></i> Guardar interinato</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

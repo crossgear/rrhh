@@ -1,0 +1,131 @@
+{% extends 'base/base.html' %}
+{% load static %}
+
+{% block title %}Inicio de Sesión - Sistema RRHH{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-center" style="min-height: calc(100vh - 100px);">
+    <div class="card shadow-lg" style="width: 430px; max-width: 100%;">
+        <div class="card-header bg-primary text-white text-center py-3">
+            <h3 class="mb-0"><i class="bi bi-building"></i><br>Sistema RRHH</h3>
+            <small class="text-light">Institucional</small>
+        </div>
+        <div class="card-body p-4">
+            <h5 class="text-center mb-4">Inicio de Sesión</h5>
+            <form method="post">
+                {% csrf_token %}
+
+                <div class="mb-3">
+                    <label class="form-label d-block"><strong>Tipo de acceso</strong></label>
+                    <div class="d-flex gap-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="auth_source" id="auth_local" value="local" {% if auth_source == 'local' %}checked{% endif %}>
+                            <label class="form-check-label" for="auth_local">Usuario local</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="auth_source" id="auth_domain" value="domain" {% if ldap_enabled %}{% if auth_source == 'domain' %}checked{% endif %}{% else %}disabled{% endif %}>
+                            <label class="form-check-label" for="auth_domain">Usuario de dominio</label>
+                        </div>
+                    </div>
+                    {% if not ldap_enabled %}<small class="text-muted">El acceso por dominio no está habilitado en este entorno.</small>{% endif %}
+                </div>
+
+                <div class="mb-3">
+                    <label for="username" class="form-label">Usuario</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" class="form-control" name="username" id="username" value="{{ username_value|default:'' }}" placeholder="Ingrese su usuario" required autofocus>
+                    </div>
+                    <small class="text-muted">Para dominio, ingrese solo el usuario. Ej.: <code>nombre-apellido</code></small>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" class="form-control" name="password" id="password" placeholder="Ingrese su contraseña" required>
+                    </div>
+                </div>
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary btn-lg">
+                        <i class="bi bi-box-arrow-in-right"></i> Ingresar
+                    </button>
+                </div>
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags }}{% endif %} mt-3">
+                            <i class="bi bi-exclamation-triangle"></i>
+                            {{ message }}
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            </form>
+            <hr class="my-3">
+            <small class="text-muted text-center d-block">
+                Sistema de Gestión Integral de Fichas Personales<br>
+                v1.0 - 2025
+            </small>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+(function() {
+    const form = document.querySelector('form');
+    const usernameInput = document.getElementById('username');
+    const localRadio = document.getElementById('auth_local');
+    const domainRadio = document.getElementById('auth_domain');
+    const STORAGE_SOURCE = 'rrhh_last_auth_source';
+    const STORAGE_LOCAL = 'rrhh_last_local_username';
+    const STORAGE_DOMAIN = 'rrhh_last_domain_username';
+
+    if (!form || !usernameInput) return;
+
+    function selectedSource() {
+        if (domainRadio && domainRadio.checked) return 'domain';
+        return 'local';
+    }
+
+    function storageKeyFor(source) {
+        return source === 'domain' ? STORAGE_DOMAIN : STORAGE_LOCAL;
+    }
+
+    function applyUsernameFor(source, force=false) {
+        const remembered = localStorage.getItem(storageKeyFor(source)) || '';
+        if (remembered && (force || !usernameInput.value.trim())) {
+            usernameInput.value = remembered;
+        }
+        usernameInput.placeholder = source === 'domain'
+            ? 'Ej.: nombre-apellido'
+            : 'Ingrese su usuario local';
+    }
+
+    const rememberedSource = localStorage.getItem(STORAGE_SOURCE);
+    if (rememberedSource === 'domain' && domainRadio && !domainRadio.disabled) {
+        domainRadio.checked = true;
+        localRadio.checked = false;
+    } else if (rememberedSource === 'local' && localRadio) {
+        localRadio.checked = true;
+        if (domainRadio) domainRadio.checked = false;
+    }
+
+    applyUsernameFor(selectedSource());
+
+    [localRadio, domainRadio].forEach(function(radio) {
+        if (!radio) return;
+        radio.addEventListener('change', function() {
+            const source = selectedSource();
+            localStorage.setItem(STORAGE_SOURCE, source);
+            applyUsernameFor(source, true);
+        });
+    });
+
+    form.addEventListener('submit', function() {
+        const source = selectedSource();
+        localStorage.setItem(STORAGE_SOURCE, source);
+        localStorage.setItem(storageKeyFor(source), usernameInput.value.trim());
+    });
+})();
+</script>
+{% endblock %}
+{% endblock %}

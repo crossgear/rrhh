@@ -1,0 +1,162 @@
+{% extends 'base/base.html' %}
+{% block title %}{{ persona.nombre_completo }} - Ficha Personal{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="mb-1">{% if owner_mode %}Mi ficha personal{% else %}Ficha personal{% endif %}</h2>
+        <p class="text-muted mb-0">{{ persona.nombre_completo }} · CI {{ persona.CI_NUMERO }}</p>
+    </div>
+    <div>
+        {% if owner_mode %}
+            <a href="{% url 'mi-ficha-editar' %}" class="btn btn-primary me-2">Editar mis datos</a>
+            <a href="{% url 'mi-ficha-print' %}" target="_blank" class="btn btn-outline-secondary">Imprimir</a>
+        {% else %}
+            <a href="{% url 'persona-list' %}" class="btn btn-outline-secondary me-2">Volver</a>
+            <a href="{% url 'persona-print' persona.id %}" target="_blank" class="btn btn-outline-secondary me-2">Imprimir</a>
+            {% if user.puede_acceder_panel_rrhh %}<a href="{% url 'persona-update' persona.id %}" class="btn btn-primary">Editar ficha</a>{% endif %}
+        {% endif %}
+    </div>
+</div>
+{% with extra=extra %}
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card h-100"><div class="card-header bg-primary text-white">Datos personales</div><div class="card-body">
+            <p><strong>Nombres:</strong> {{ persona.NOMBRES }}</p>
+            <p><strong>Apellidos:</strong> {{ persona.APELLIDOS }}</p>
+            <p><strong>Fecha de nacimiento:</strong> {{ persona.FECHA_NACIMIENTO|date:"d/m/Y" }} ({{ persona.edad }} años)</p>
+            <p><strong>Estado civil:</strong> {{ persona.get_ESTADO_CIVIL_display }}</p>
+            <p><strong>Teléfono:</strong> {{ persona.TELEFONO|default:'-' }}</p>
+            <p><strong>Celular:</strong> {{ extra.CELULAR|default:'-' }}</p>
+            <p><strong>Correo institucional:</strong> {{ persona.EMAIL|default:'-' }}</p>
+            <p><strong>Domicilio:</strong> {{ extra.DOMICILIO_ACTUAL|default:'-' }}</p>
+            <p><strong>Barrio / Ciudad:</strong> {{ extra.BARRIO|default:'-' }} / {{ extra.CIUDAD|default:'-' }}</p>
+            {% if persona.FOTO_CARNET %}<p><strong>Foto:</strong><br><img src="{{ persona.FOTO_CARNET.url }}" alt="Foto carnet" style="max-width:180px" class="img-thumbnail"></p>{% endif %}
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100"><div class="card-header bg-warning">Datos laborales</div><div class="card-body">
+            {% if datos_laborales %}
+            <p><strong>Tipo de vínculo:</strong> {{ datos_laborales.get_TIPO_VINCULO_display }}</p>
+            <p><strong>Institución de origen:</strong> {{ datos_laborales.institucion_origen_label|default:'-' }}</p>
+            <p><strong>Cargo:</strong> {{ datos_laborales.CARGO|default:'-' }}</p>
+            <p><strong>Categoría:</strong> {{ extra.CATEGORIA|default:'-' }}</p>
+            <p><strong>Lugar de trabajo:</strong> {{ datos_laborales.DEPENDENCIA|default:'-' }}</p>
+            <p><strong>Decreto:</strong> {{ datos_laborales.NUMERO_DECRETO|default:'-' }}{% if datos_laborales.FECHA_DECRETO %} · {{ datos_laborales.FECHA_DECRETO|date:"d/m/Y" }}{% endif %}</p>
+            <p><strong>Resolución:</strong> {{ datos_laborales.NUMERO_RESOLUCION|default:'-' }}{% if datos_laborales.FECHA_RESOLUCION %} · {{ datos_laborales.FECHA_RESOLUCION|date:"d/m/Y" }}{% endif %}</p>
+            <p><strong>D.G.R.P.:</strong> {{ extra.NUMERO_DGRP|default:'-' }}{% if extra.FECHA_DGRP %} · {{ extra.FECHA_DGRP }}{% endif %}</p>
+            {% if datos_laborales.TIPO_VINCULO == 'COMISIONADO' %}
+            <div class="alert alert-info py-2">
+                <div class="fw-semibold mb-1">Datos de comisión</div>
+                <p class="mb-1"><strong>Institución de destino:</strong> {{ datos_laborales.INSTITUCION_DESTINO_COMISION|default:'-' }}</p>
+                <p class="mb-1"><strong>Resolución/autorización:</strong> {{ datos_laborales.NUMERO_RESOLUCION_COMISION|default:'-' }}</p>
+                <p class="mb-1"><strong>Periodo:</strong> {{ datos_laborales.periodo_comision|default:'-' }}</p>
+                {% if datos_laborales.OBSERVACION_COMISION %}<p class="mb-0"><strong>Observación:</strong> {{ datos_laborales.OBSERVACION_COMISION }}</p>{% endif %}
+            </div>
+            {% endif %}
+            <p><strong>Salario:</strong> {% if datos_laborales.SALARIO %}Gs. {{ datos_laborales.SALARIO|floatformat:0 }}{% else %}-{% endif %}</p>
+            <p><strong>Fecha de ingreso:</strong> {{ datos_laborales.FECHA_INGRESO|date:"d/m/Y"|default:'-' }}</p>
+            <p><strong>Antigüedad institución de origen:</strong> {{ persona.antiguedad_origen|default:'-' }}</p>
+            <p><strong>Antigüedad RUN:</strong> {{ persona.antiguedad_run|default:'-' }}</p>
+            {% else %}<p class="text-muted">Sin datos laborales cargados.</p>{% endif %}
+        </div></div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span><i class="bi bi-person-badge"></i> Interinatos</span>
+                {% if user.puede_acceder_panel_rrhh %}
+                <a href="{% url 'interinato-create' persona.id %}" class="btn btn-sm btn-light">
+                    <i class="bi bi-plus-circle"></i> Agregar interinato
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if interinatos %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Cargo interino</th>
+                                <th>Dependencia</th>
+                                <th>Resolución</th>
+                                <th>Periodo</th>
+                                <th>Estado</th>
+                                <th>PDF</th>
+                                {% if user.puede_acceder_panel_rrhh %}<th class="text-end">Acciones</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for interinato in interinatos %}
+                            <tr>
+                                <td><strong>{{ interinato.cargo_interino }}</strong>{% if interinato.observacion %}<div class="small text-muted">{{ interinato.observacion }}</div>{% endif %}</td>
+                                <td>{{ interinato.dependencia|default:'-' }}</td>
+                                <td>{{ interinato.numero_resolucion }}{% if interinato.fecha_resolucion %}<div class="small text-muted">{{ interinato.fecha_resolucion|date:"d/m/Y" }}</div>{% endif %}</td>
+                                <td>{{ interinato.fecha_inicio|date:"d/m/Y" }} al {{ interinato.fecha_fin|date:"d/m/Y" }}</td>
+                                <td><span class="badge bg-{{ interinato.estado_badge }}">{{ interinato.estado_display }}</span></td>
+                                <td><a href="{{ interinato.archivo_resolucion.url }}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf"></i> Ver</a></td>
+                                {% if user.puede_acceder_panel_rrhh %}
+                                <td class="text-end">
+                                    <a href="{% url 'interinato-update' interinato.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <a href="{% url 'interinato-delete' interinato.id %}" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></a>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="text-muted mb-0">No registra interinatos cargados.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100"><div class="card-header bg-success text-white">Datos académicos</div><div class="card-body">
+            <p><strong>Nivel primario:</strong> {% if extra.NIVEL_PRIMARIO %}Sí{% else %}No{% endif %}</p>
+            <p><strong>Nivel secundario:</strong> {% if extra.NIVEL_SECUNDARIO %}Sí{% else %}No{% endif %}</p>
+            <p><strong>Nivel universitario:</strong> {% if extra.NIVEL_UNIVERSITARIO %}Sí{% else %}No{% endif %}</p>
+            <p><strong>Bachiller:</strong> {{ extra.BACHILLER|default:'-' }} {% if extra.ANIO_BACHILLER %}({{ extra.ANIO_BACHILLER }}){% endif %}</p>
+            <p><strong>Carrera:</strong> {% if datos_academicos %}{{ datos_academicos.PROFESION|default:'-' }}{% else %}-{% endif %}</p>
+            <p><strong>Universidad:</strong> {% if datos_academicos %}{{ datos_academicos.UNIVERSIDAD|default:'-' }}{% else %}-{% endif %}</p>
+            <p><strong>Postgrados:</strong> {{ extra.POSTGRADOS|default:'-' }}</p>
+            <p><strong>Maestrías:</strong> {{ extra.MAESTRIAS|default:'-' }}</p>
+            <p><strong>Doctorados:</strong> {{ extra.DOCTORADOS|default:'-' }}</p>
+            <p><strong>Otros estudios:</strong> {{ extra.OTROS_ESTUDIOS|default:'-' }}</p>
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100"><div class="card-header bg-info text-white">Médico y emergencia</div><div class="card-body">
+            <p><strong>Alergias / enfermedades:</strong> {{ extra.ALERGIAS_ENFERMEDADES|default:'-' }}</p>
+            <p><strong>Grupo sanguíneo:</strong> {{ extra.GRUPO_SANGUINEO|default:'-' }}</p>
+            <p><strong>Seguro médico:</strong> {% if extra.TIENE_SEGURO_MEDICO %}Sí{% else %}No{% endif %}</p>
+            <p><strong>Sanatorio:</strong> {{ extra.SANATORIO|default:'-' }}</p>
+            <p><strong>Tel. sanatorio:</strong> {{ extra.TELEFONO_SANATORIO|default:'-' }}</p>
+            <p><strong>Emergencia 1:</strong> {{ extra.EMERGENCIA_NOMBRE_1|default:'-' }} · {{ extra.EMERGENCIA_TELEFONO_1|default:'-' }}</p>
+            <p><strong>Emergencia 2:</strong> {{ extra.EMERGENCIA_NOMBRE_2|default:'-' }} · {{ extra.EMERGENCIA_TELEFONO_2|default:'-' }}</p>
+        </div></div>
+    </div>
+    <div class="col-12">
+        <div class="card"><div class="card-header">Familiares y observaciones</div><div class="card-body">
+            <p><strong>Padre:</strong> {{ extra.NOMBRE_PADRE|default:'-' }}</p>
+            <p><strong>Madre:</strong> {{ extra.NOMBRE_MADRE|default:'-' }}</p>
+            <p><strong>Cónyuge:</strong> {{ extra.NOMBRE_CONYUGE|default:'-' }}</p>
+            <ul>
+                {% if extra.HIJO_1_NOMBRE %}<li>{{ extra.HIJO_1_NOMBRE }}{% if extra.HIJO_1_FECHA %} · {{ extra.HIJO_1_FECHA }}{% endif %}</li>{% endif %}
+                {% if extra.HIJO_2_NOMBRE %}<li>{{ extra.HIJO_2_NOMBRE }}{% if extra.HIJO_2_FECHA %} · {{ extra.HIJO_2_FECHA }}{% endif %}</li>{% endif %}
+                {% if extra.HIJO_3_NOMBRE %}<li>{{ extra.HIJO_3_NOMBRE }}{% if extra.HIJO_3_FECHA %} · {{ extra.HIJO_3_FECHA }}{% endif %}</li>{% endif %}
+                {% if extra.HIJO_4_NOMBRE %}<li>{{ extra.HIJO_4_NOMBRE }}{% if extra.HIJO_4_FECHA %} · {{ extra.HIJO_4_FECHA }}{% endif %}</li>{% endif %}
+                {% if extra.HIJO_5_NOMBRE %}<li>{{ extra.HIJO_5_NOMBRE }}{% if extra.HIJO_5_FECHA %} · {{ extra.HIJO_5_FECHA }}{% endif %}</li>{% endif %}
+                {% if extra.HIJO_6_NOMBRE %}<li>{{ extra.HIJO_6_NOMBRE }}{% if extra.HIJO_6_FECHA %} · {{ extra.HIJO_6_FECHA }}{% endif %}</li>{% endif %}
+            </ul>
+            <p><strong>Observaciones:</strong> {{ extra.OBSERVACIONES_FICHA|default:'-' }}</p>
+            <p><strong>Croquis / referencia:</strong> {{ extra.CROQUIS_REFERENCIA|default:'-'|urlize|linebreaksbr }}</p>
+            {% if extra.LATITUD and extra.LONGITUD %}<p class="mt-2"><a href="https://www.google.com/maps?q={{ extra.LATITUD }},{{ extra.LONGITUD }}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-primary">Abrir ubicación en Google Maps</a></p>{% endif %}
+            {% if extra.CROQUIS_MAP_URL %}<div class="mt-3"><strong>Vista del domicilio:</strong><br><img src="{{ extra.CROQUIS_MAP_URL }}" alt="Croquis del domicilio" class="img-fluid rounded border mt-2"></div>{% endif %}
+            <p><strong>Aclaración / fecha:</strong> {{ extra.FIRMA_ACLARACION|default:'-' }}{% if extra.FECHA_FIRMA %} · {{ extra.FECHA_FIRMA }}{% endif %}</p>
+        </div></div>
+    </div>
+</div>
+{% endwith %}
+{% endblock %}

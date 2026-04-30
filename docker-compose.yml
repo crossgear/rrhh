@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  # PostgreSQL con PostGIS
+  db:
+    image: postgis/postgis:15-3.4
+    container_name: rrhh_postgres
+    environment:
+      POSTGRES_DB: ${DB_NAME:-rrhh_db}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres123}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - rrhh_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Aplicación Django
+  web:
+    build: .
+    container_name: rrhh_web
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             (python manage.py createsuperuser --noinput || echo 'Superuser creation skipped') &&
+             gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 1 --timeout 120"
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+      - ./logs:/app/logs
+    environment:
+      DATABASE_URL: postgis://${DB_USER:-postgres}:${DB_PASSWORD:-postgres123}@db:5432/${DB_NAME:-rrhh_db}
+      DB_NAME: ${DB_NAME:-rrhh_db}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres123}
+      DB_HOST: db
+      DB_PORT: 5432
+      DEBUG: ${DEBUG:-True}
+      DJANGO_SETTINGS_MODULE: ${DJANGO_SETTINGS_MODULE:-config.settings.development}
+      SECRET_KEY: ${SECRET_KEY:-change-this-in-production}
+      DJANGO_SUPERUSER_USERNAME: ${DJANGO_SUPERUSER_USERNAME:-admin}
+      DJANGO_SUPERUSER_EMAIL: ${DJANGO_SUPERUSER_EMAIL:-admin@example.com}
+      DJANGO_SUPERUSER_PASSWORD: ${DJANGO_SUPERUSER_PASSWORD:-admin123}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      GDAL_LIBRARY_PATH: /usr/lib/x86_64-linux-gnu/libgdal.so
+      ENABLE_LDAP_AUTH: ${ENABLE_LDAP_AUTH:-False}
+      AUTH_LDAP_SERVER_URI: ${AUTH_LDAP_SERVER_URI:-}
+      AUTH_LDAP_DOMAIN: ${AUTH_LDAP_DOMAIN:-}
+      AUTH_LDAP_SEARCH_BASE: ${AUTH_LDAP_SEARCH_BASE:-}
+      AUTH_LDAP_BIND_DN: ${AUTH_LDAP_BIND_DN:-}
+      AUTH_LDAP_BIND_PASSWORD: ${AUTH_LDAP_BIND_PASSWORD:-}
+    ports:
+      - "8001:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - rrhh_network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  static_volume:
+  media_volume:
+
+networks:
+  rrhh_network:
+    driver: bridge
