@@ -126,12 +126,16 @@
                                 <a href="{% url 'persona-update' persona.id %}" class="btn btn-sm btn-outline-warning" title="Editar ficha">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                <form method="post" action="{% url 'persona-delete' persona.id %}" class="d-inline">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar registro" onclick="return confirm('¿Estás seguro de eliminar este registro? Esta acción no se puede deshacer.');">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
+                                <button type="button"
+                                        class="btn btn-sm btn-outline-danger btn-eliminar-registro"
+                                        title="Eliminar registro"
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#modalConfirmarEliminacion"
+                                        data-delete-url="{% url 'persona-delete' persona.id %}"
+                                        data-persona-nombre="{{ persona.nombre_completo|escape }}"
+                                        data-persona-ci="{{ persona.CI_NUMERO }}">
+                                    <i class="bi bi-trash"></i>
+                                </button>
                                 {% endif %}
                             </td>
                         </tr>
@@ -176,4 +180,65 @@
         {% endif %}
     </div>
 </div>
+
+<!-- Modal institucional de confirmación de eliminación -->
+<div class="modal fade" id="modalConfirmarEliminacion" tabindex="-1" aria-labelledby="modalConfirmarEliminacionLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-light border-0 rounded-top-4 pb-0">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle bg-danger-subtle text-danger d-inline-flex align-items-center justify-content-center" style="width: 48px; height: 48px;">
+                        <i class="bi bi-exclamation-triangle fs-4"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold mb-0" id="modalConfirmarEliminacionLabel">Confirmación de operación</h5>
+                        <small class="text-muted">Sistema de Gestión Integral de Fichas Personales</small>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body pt-3">
+                <p class="mb-2">Se solicita confirmar la eliminación del registro seleccionado.</p>
+                <div class="alert alert-warning border-warning-subtle rounded-3 mb-3">
+                    <div class="fw-semibold" id="modal-persona-nombre">Funcionario seleccionado</div>
+                    <div class="small text-muted">C.I. N° <span id="modal-persona-ci">-</span></div>
+                </div>
+                <p class="mb-0 text-muted">
+                    Esta acción es irreversible y eliminará definitivamente los datos asociados del sistema.
+                </p>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    Cancelar operación
+                </button>
+                <form method="post" id="form-eliminar-registro" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Confirmar eliminación
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('modalConfirmarEliminacion');
+    const form = document.getElementById('form-eliminar-registro');
+    const nombre = document.getElementById('modal-persona-nombre');
+    const ci = document.getElementById('modal-persona-ci');
+
+    if (!modal || !form) return;
+
+    modal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        if (!button) return;
+
+        form.action = button.getAttribute('data-delete-url');
+        nombre.textContent = button.getAttribute('data-persona-nombre') || 'Funcionario seleccionado';
+        ci.textContent = button.getAttribute('data-persona-ci') || '-';
+    });
+});
+</script>
 {% endblock %}
