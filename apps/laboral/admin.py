@@ -16,7 +16,7 @@ class DatosLaboralesAdmin(admin.ModelAdmin):
         'ACTIVO',
         'FECHA_INGRESO'
     )
-    list_filter = ('TIPO_VINCULO', 'ACTIVO', 'DEPENDENCIA')
+    list_filter = ('TIPO_VINCULO', 'INSTITUCION_ORIGEN', 'ACTIVO', 'DEPENDENCIA')
     search_fields = (
         'persona__NOMBRES',
         'persona__APELLIDOS',
@@ -32,10 +32,10 @@ class DatosLaboralesAdmin(admin.ModelAdmin):
             'fields': ('persona',)
         }),
         ('Vinculación', {
-            'fields': ('TIPO_VINCULO', 'INSTITUCION', 'DEPENDENCIA', 'CARGO')
+            'fields': ('TIPO_VINCULO', 'INSTITUCION_ORIGEN', 'INSTITUCION', 'DEPENDENCIA', 'CARGO')
         }),
         ('Documentación', {
-            'fields': ('NUMERO_DECRETO', 'FECHA_DECRETO', 'NUMERO_RESOLUCION', 'FECHA_RESOLUCION'),
+            'fields': ('NUMERO_DECRETO', 'FECHA_DECRETO', 'NUMERO_RESOLUCION', 'FECHA_RESOLUCION', 'INSTITUCION_DESTINO_COMISION', 'NUMERO_RESOLUCION_COMISION', 'FECHA_INICIO_COMISION', 'FECHA_FIN_COMISION', 'OBSERVACION_COMISION'),
             'classes': ('collapse',)
         }),
         ('Condiciones', {

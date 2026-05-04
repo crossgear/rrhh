@@ -133,6 +133,22 @@
             height: 48mm;
             border: 1px dashed #cbd5e1;
         }
+
+        .simple-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5px;
+        }
+        .simple-table th,
+        .simple-table td {
+            border: 1px solid var(--border);
+            padding: 4px 5px;
+            vertical-align: top;
+        }
+        .simple-table th {
+            background: var(--soft);
+            font-weight: bold;
+        }
         .children-table {
             width: 100%;
             border-collapse: collapse;
@@ -214,18 +230,57 @@
         <div class="section-title">2. DATOS LABORALES</div>
         <div class="grid grid-3">
             <div class="field"><span class="label">Tipo de vínculo</span><span class="value">{% if datos_laborales %}{{ datos_laborales.get_TIPO_VINCULO_display|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Institución de origen</span><span class="value">{% if datos_laborales %}{{ datos_laborales.institucion_origen_label|default:"-" }}{% else %}-{% endif %}</span></div>
             <div class="field"><span class="label">Decreto N°</span><span class="value">{% if datos_laborales %}{{ datos_laborales.NUMERO_DECRETO|default:"-" }}{% else %}-{% endif %}</span></div>
             <div class="field"><span class="label">Fecha decreto</span><span class="value">{% if datos_laborales %}{{ datos_laborales.FECHA_DECRETO|date:"d/m/Y"|default:"-" }}{% else %}-{% endif %}</span></div>
             <div class="field"><span class="label">Resolución N°</span><span class="value">{% if datos_laborales %}{{ datos_laborales.NUMERO_RESOLUCION|default:"-" }}{% else %}-{% endif %}</span></div>
             <div class="field"><span class="label">Fecha resolución</span><span class="value">{% if datos_laborales %}{{ datos_laborales.FECHA_RESOLUCION|date:"d/m/Y"|default:"-" }}{% else %}-{% endif %}</span></div>
             <div class="field"><span class="label">D.G.R.P. N°</span><span class="value">{{ extra.NUMERO_DGRP|default:"-" }}</span></div>
             <div class="field"><span class="label">Fecha D.G.R.P.</span><span class="value">{{ extra.FECHA_DGRP|default:"-" }}</span></div>
+            {% if datos_laborales and datos_laborales.TIPO_VINCULO == 'COMISIONADO' %}
+            <div class="field"><span class="label">Destino comisión</span><span class="value">{{ datos_laborales.INSTITUCION_DESTINO_COMISION|default:"-" }}</span></div>
+            <div class="field"><span class="label">Resolución comisión</span><span class="value">{{ datos_laborales.NUMERO_RESOLUCION_COMISION|default:"-" }}</span></div>
+            <div class="field"><span class="label">Periodo comisión</span><span class="value">{{ datos_laborales.periodo_comision|default:"-" }}</span></div>
+            {% endif %}
             <div class="field"><span class="label">Cargo</span><span class="value">{% if datos_laborales %}{{ datos_laborales.CARGO|default:"-" }}{% else %}-{% endif %}</span></div>
             <div class="field"><span class="label">Categoría</span><span class="value">{{ extra.CATEGORIA|default:"-" }}</span></div>
             <div class="field"><span class="label">Salario</span><span class="value">{% if datos_laborales and datos_laborales.SALARIO %}Gs. {{ datos_laborales.SALARIO|floatformat:0 }}{% else %}-{% endif %}</span></div>
             <div class="field"><span class="label">Fecha ingreso</span><span class="value">{% if datos_laborales %}{{ datos_laborales.FECHA_INGRESO|date:"d/m/Y"|default:"-" }}{% else %}-{% endif %}</span></div>
+            <div class="field"><span class="label">Antigüedad institución de origen</span><span class="value">{{ persona.antiguedad_origen|default:"-" }}</span></div>
+            <div class="field"><span class="label">Antigüedad RUN</span><span class="value">{{ persona.antiguedad_run|default:"-" }}</span></div>
             <div class="field large"><span class="label">Lugar de trabajo</span><span class="value">{% if datos_laborales %}{{ datos_laborales.DEPENDENCIA|default:"-" }}{% else %}-{% endif %}</span></div>
         </div>
+    </div>
+
+    
+    <div class="section">
+        <div class="section-title">INTERINATOS</div>
+        {% if interinatos %}
+            <table class="simple-table">
+                <thead>
+                    <tr>
+                        <th>Cargo interino</th>
+                        <th>Dependencia</th>
+                        <th>Resolución</th>
+                        <th>Periodo</th>
+                        <th>Estado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for interinato in interinatos %}
+                    <tr>
+                        <td>{{ interinato.cargo_interino }}</td>
+                        <td>{{ interinato.dependencia|default:"-" }}</td>
+                        <td>{{ interinato.numero_resolucion }}{% if interinato.fecha_resolucion %} · {{ interinato.fecha_resolucion|date:"d/m/Y" }}{% endif %}</td>
+                        <td>{{ interinato.fecha_inicio|date:"d/m/Y" }} al {{ interinato.fecha_fin|date:"d/m/Y" }}</td>
+                        <td>{{ interinato.estado_display }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="field"><span class="value">Sin interinatos registrados.</span></div>
+        {% endif %}
     </div>
 
     <div class="section">

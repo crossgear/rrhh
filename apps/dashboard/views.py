@@ -7,13 +7,14 @@ from apps.personas.models import Persona
 from apps.laboral.models import DatosLaborales
 from apps.academico.models import DatosAcademicos
 from apps.ubicacion.models import Domicilio
+from apps.auditoria.models import Auditoria
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
     template_name = 'dashboard/index.html'
 
     def dispatch(self, request, *args, **kwargs):
-        if request.user.is_authenticated and not request.user.es_rrhh:
+        if request.user.is_authenticated and not request.user.puede_acceder_panel_rrhh:
             return redirect('mi-ficha')
         return super().dispatch(request, *args, **kwargs)
 
@@ -30,4 +31,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context['con_maestria'] = DatosAcademicos.objects.filter(TIENE_MAESTRIA=True).count()
         context['con_doctorado'] = DatosAcademicos.objects.filter(TIENE_DOCTORADO=True).count()
         context['top_dependencias'] = DatosLaborales.objects.filter(ACTIVO=True).values('DEPENDENCIA').annotate(total=Count('id')).order_by('-total')[:5]
+        context['nombrados_total'] = DatosLaborales.objects.filter(ACTIVO=True, TIPO_VINCULO='NOMBRADO').count()
+        context['contratados_total'] = DatosLaborales.objects.filter(ACTIVO=True, TIPO_VINCULO='CONTRATADO').count()
+        context['pasantias_total'] = DatosLaborales.objects.filter(ACTIVO=True, TIPO_VINCULO__in=['PASANTIA','PRACTICANTE']).count()
+        context['auditorias_recientes'] = Auditoria.objects.select_related('usuario')[:5]
+        context['total_auditorias'] = Auditoria.objects.count()
         return context

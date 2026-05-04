@@ -97,3 +97,32 @@ class Persona(models.Model):
     @property
     def tiene_datos_academicos(self):
         return hasattr(self, 'datos_academicos') and self.datos_academicos is not None
+
+    @property
+    def antiguedad_laboral(self):
+        datos = getattr(self, 'datos_laborales', None)
+        if datos and getattr(datos, 'antiguedad', ''):
+            return datos.antiguedad
+        return ''
+
+    @property
+    def antiguedad_origen(self):
+        datos = getattr(self, 'datos_laborales', None)
+        if datos and getattr(datos, 'antiguedad_origen', ''):
+            return datos.antiguedad_origen
+        return ''
+
+    @property
+    def antiguedad_run(self):
+        datos = getattr(self, 'datos_laborales', None)
+        if datos and getattr(datos, 'antiguedad_run', ''):
+            return datos.antiguedad_run
+        return ''
+
+    @property
+    def institucion_origen_label(self):
+        datos = getattr(self, 'datos_laborales', None)
+        if datos and getattr(datos, 'institucion_origen_label', ''):
+            return datos.institucion_origen_label
+        return 'Institución de origen'
+

@@ -29,9 +29,9 @@ fi
 
 # Configuración Docker
 echo "🐳 Configurando Docker..."
-if command -v docker compose &> /dev/null; then
+if command -v docker-compose &> /dev/null; then
     echo "   Iniciando servicios PostgreSQL+PostGIS..."
-    docker compose up -d db
+    docker-compose up -d db
 
     echo "   Esperando a que la base de datos esté lista..."
     sleep 10

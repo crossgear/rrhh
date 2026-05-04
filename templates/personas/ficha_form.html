@@ -20,12 +20,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const blocks = {
         'NOMBRADO': document.getElementById('bloque-nombrado'),
         'CONTRATADO': document.getElementById('bloque-contratado'),
+        'COMISIONADO': document.getElementById('bloque-comisionado'),
         'PASANTIA': document.getElementById('bloque-pasantia'),
         'PRACTICANTE': document.getElementById('bloque-practicante')
     };
     const decretoFields = ['id_NUMERO_DECRETO','id_FECHA_DECRETO'];
     const resolFields = ['id_NUMERO_RESOLUCION','id_FECHA_RESOLUCION'];
     const dgrpFields = ['id_NUMERO_DGRP','id_FECHA_DGRP'];
+    const comisionFields = ['id_INSTITUCION_DESTINO_COMISION','id_NUMERO_RESOLUCION_COMISION','id_FECHA_INICIO_COMISION','id_FECHA_FIN_COMISION','id_OBSERVACION_COMISION'];
 
     function setDisabled(ids, disabled) {
         ids.forEach(id => {
@@ -43,9 +45,60 @@ document.addEventListener('DOMContentLoaded', function() {
         setDisabled(decretoFields, value !== 'NOMBRADO');
         setDisabled(resolFields, value !== 'CONTRATADO');
         setDisabled(dgrpFields, !['PASANTIA', 'PRACTICANTE'].includes(value));
+        setDisabled(comisionFields, value !== 'COMISIONADO');
     }
     radios.forEach(r => r.addEventListener('change', updateLaboralUI));
     updateLaboralUI();
+
+    const fechaIngreso = document.getElementById('id_FECHA_INGRESO');
+    const institucionOrigen = document.getElementById('id_INSTITUCION_ORIGEN');
+    const institucionHelp = document.getElementById('institucion-origen-help');
+    let institucionHidden = null;
+
+    function ensureInstitucionHidden() {
+        if (!institucionOrigen) return null;
+        if (!institucionHidden) {
+            institucionHidden = document.createElement('input');
+            institucionHidden.type = 'hidden';
+            institucionHidden.name = institucionOrigen.name;
+            institucionOrigen.insertAdjacentElement('afterend', institucionHidden);
+        }
+        return institucionHidden;
+    }
+
+    function updateInstitucionOrigen() {
+        if (!fechaIngreso || !institucionOrigen) return;
+        const value = fechaIngreso.value;
+        const tipoChecked = document.querySelector('input[name="TIPO_VINCULO"]:checked');
+        const esComisionado = tipoChecked && tipoChecked.value === 'COMISIONADO';
+        const desdeRUN = value && value >= '2026-01-01' && !esComisionado;
+        if (desdeRUN) {
+            institucionOrigen.value = 'RUN';
+            institucionOrigen.disabled = true;
+            const hidden = ensureInstitucionHidden();
+            if (hidden) hidden.value = 'RUN';
+            if (institucionHelp) {
+                institucionHelp.textContent = 'Asignado automáticamente: funcionarios ingresados desde el 01/01/2026 pertenecen al Registro Unificado Nacional.';
+                institucionHelp.classList.remove('text-muted');
+                institucionHelp.classList.add('text-primary', 'fw-semibold');
+            }
+        } else {
+            institucionOrigen.disabled = false;
+            if (institucionHidden) institucionHidden.remove();
+            institucionHidden = null;
+            if (institucionHelp) {
+                institucionHelp.textContent = esComisionado ? 'Para comisionados, seleccione la institución de origen real. RUN no corresponde como institución de origen.' : 'Seleccione la institución previa/origen. Desde el 01/01/2026 se calcula la antigüedad RUN.';
+                institucionHelp.classList.remove('text-primary', 'fw-semibold');
+                institucionHelp.classList.add('text-muted');
+            }
+        }
+    }
+    if (fechaIngreso && institucionOrigen) {
+        fechaIngreso.addEventListener('change', updateInstitucionOrigen);
+        fechaIngreso.addEventListener('input', updateInstitucionOrigen);
+        radios.forEach(r => r.addEventListener('change', updateInstitucionOrigen));
+        updateInstitucionOrigen();
+    }
 });
 
 window.initCroquisMap = function initCroquisMap() {
@@ -442,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
 
         <h5 class="border-bottom pb-2 mt-4 mb-3">2. Datos laborales</h5>
-        <div class="alert alert-light border small text-muted mb-3">Seleccioná el tipo de vínculo y completá únicamente los datos que correspondan.</div>
+        <div class="alert alert-light border small text-muted mb-3">Seleccioná el tipo de vínculo, la institución de origen y completá únicamente los datos que correspondan. La antigüedad de origen se calcula hasta el 31/12/2025; desde el 01/01/2026 se calcula como antigüedad RUN.</div>
         <div class="card border-0 bg-light-subtle mb-3"><div class="card-body py-3">
             <label class="form-label fw-semibold mb-2">Tipo de vínculo</label>
             <div class="d-flex flex-wrap gap-3" id="tipo-vinculo-group">
@@ -455,11 +508,18 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
             {% if form.TIPO_VINCULO.errors %}<div class="text-danger small mt-1">{{ form.TIPO_VINCULO.errors|join:', ' }}</div>{% endif %}
         </div></div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-6">
+                {{ form.INSTITUCION_ORIGEN.label_tag }}{{ form.INSTITUCION_ORIGEN }}
+                <div id="institucion-origen-help" class="form-text text-muted">Si la fecha de ingreso es desde el 01/01/2026, se asignará automáticamente Registro Unificado Nacional.</div>{% if form.INSTITUCION_ORIGEN.errors %}<div class="text-danger small mt-1">{{ form.INSTITUCION_ORIGEN.errors|join:', ' }}</div>{% endif %}
+            </div>
+        </div>
         <div class="row g-3 mb-2">
             <div class="col-12 col-lg-6"><div id="bloque-nombrado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">a) Nombrado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DECRETO.label_tag }}{{ form.NUMERO_DECRETO }}</div><div class="col-md-6">{{ form.FECHA_DECRETO.label_tag }}{{ form.FECHA_DECRETO }}</div></div></div></div></div>
             <div class="col-12 col-lg-6"><div id="bloque-contratado" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">b) Contratado/a</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_RESOLUCION.label_tag }}{{ form.NUMERO_RESOLUCION }}</div><div class="col-md-6">{{ form.FECHA_RESOLUCION.label_tag }}{{ form.FECHA_RESOLUCION }}</div></div></div></div></div>
-            <div class="col-12 col-lg-6"><div id="bloque-pasantia" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">c) Pasantía</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
-            <div class="col-12 col-lg-6"><div id="bloque-practicante" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">d) Practicante</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
+            <div class="col-12"><div id="bloque-comisionado" class="laboral-block card h-100 shadow-sm border-info-subtle d-none"><div class="card-body"><div class="fw-semibold mb-2">c) Comisionado/a</div><div class="alert alert-info small mb-3">Funcionario nombrado o contratado en una institución de origen que presta servicios temporalmente en otra entidad pública mediante resolución o autorización administrativa. Para este vínculo, la institución de origen debe ser externa al RUN.</div><div class="row g-3"><div class="col-md-6">{{ form.INSTITUCION_DESTINO_COMISION.label_tag }}{{ form.INSTITUCION_DESTINO_COMISION }}{% if form.INSTITUCION_DESTINO_COMISION.help_text %}<div class="form-text">{{ form.INSTITUCION_DESTINO_COMISION.help_text }}</div>{% endif %}{% if form.INSTITUCION_DESTINO_COMISION.errors %}<div class="text-danger small mt-1">{{ form.INSTITUCION_DESTINO_COMISION.errors|join:' , ' }}</div>{% endif %}</div><div class="col-md-6">{{ form.NUMERO_RESOLUCION_COMISION.label_tag }}{{ form.NUMERO_RESOLUCION_COMISION }}{% if form.NUMERO_RESOLUCION_COMISION.errors %}<div class="text-danger small mt-1">{{ form.NUMERO_RESOLUCION_COMISION.errors|join:' , ' }}</div>{% endif %}</div><div class="col-md-4">{{ form.FECHA_INICIO_COMISION.label_tag }}{{ form.FECHA_INICIO_COMISION }}{% if form.FECHA_INICIO_COMISION.errors %}<div class="text-danger small mt-1">{{ form.FECHA_INICIO_COMISION.errors|join:' , ' }}</div>{% endif %}</div><div class="col-md-4">{{ form.FECHA_FIN_COMISION.label_tag }}{{ form.FECHA_FIN_COMISION }}{% if form.FECHA_FIN_COMISION.errors %}<div class="text-danger small mt-1">{{ form.FECHA_FIN_COMISION.errors|join:' , ' }}</div>{% endif %}</div><div class="col-md-12">{{ form.OBSERVACION_COMISION.label_tag }}{{ form.OBSERVACION_COMISION }}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-pasantia" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">d) Pasantía</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
+            <div class="col-12 col-lg-6"><div id="bloque-practicante" class="laboral-block card h-100 shadow-sm border-primary-subtle d-none"><div class="card-body"><div class="fw-semibold mb-3">e) Practicante</div><div class="row g-3"><div class="col-md-6">{{ form.NUMERO_DGRP.label_tag }}{{ form.NUMERO_DGRP }}</div><div class="col-md-6">{{ form.FECHA_DGRP.label_tag }}{{ form.FECHA_DGRP }}</div></div></div></div></div>
         </div>
         <div class="row g-3 pt-2 border-top mt-1">
             <div class="col-md-4">{{ form.CARGO.label_tag }}{{ form.CARGO }}</div>

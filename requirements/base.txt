@@ -27,3 +27,6 @@ psycopg2-binary==2.9.9
 djangorestframework-simplejwt==5.3.1
 # LDAP / Active Directory
 django-auth-ldap==4.8.0
+
+# Excel export
+openpyxl==3.1.2

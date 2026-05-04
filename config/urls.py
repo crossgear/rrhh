@@ -30,6 +30,8 @@ urlpatterns = [
     # Vistas web
     path('personas/', include('apps.personas.urls')),
     path('dashboard/', include('apps.dashboard.urls')),
+    path('auditoria/', include('apps.auditoria.urls')),
+    path('interinatos/', include('apps.interinatos.urls')),
 ]
 
 # Vistas personalizadas de error

@@ -13,7 +13,11 @@
         {% else %}
             <a href="{% url 'persona-list' %}" class="btn btn-outline-secondary me-2">Volver</a>
             <a href="{% url 'persona-print' persona.id %}" target="_blank" class="btn btn-outline-secondary me-2">Imprimir</a>
+<<<<<<< HEAD
             {% if user.es_rrhh %}<a href="{% url 'persona-update' persona.id %}" class="btn btn-primary">Editar ficha</a>{% endif %}
+=======
+            {% if user.puede_acceder_panel_rrhh %}<a href="{% url 'persona-update' persona.id %}" class="btn btn-primary">Editar ficha</a>{% endif %}
+>>>>>>> 3eb7f368f6bde66b9883d82e8fe5fc069e4bc6d0
         {% endif %}
     </div>
 </div>
@@ -37,17 +41,92 @@
         <div class="card h-100"><div class="card-header bg-warning">Datos laborales</div><div class="card-body">
             {% if datos_laborales %}
             <p><strong>Tipo de vínculo:</strong> {{ datos_laborales.get_TIPO_VINCULO_display }}</p>
+<<<<<<< HEAD
+=======
+            <p><strong>Institución de origen:</strong> {{ datos_laborales.institucion_origen_label|default:'-' }}</p>
+>>>>>>> 3eb7f368f6bde66b9883d82e8fe5fc069e4bc6d0
             <p><strong>Cargo:</strong> {{ datos_laborales.CARGO|default:'-' }}</p>
             <p><strong>Categoría:</strong> {{ extra.CATEGORIA|default:'-' }}</p>
             <p><strong>Lugar de trabajo:</strong> {{ datos_laborales.DEPENDENCIA|default:'-' }}</p>
             <p><strong>Decreto:</strong> {{ datos_laborales.NUMERO_DECRETO|default:'-' }}{% if datos_laborales.FECHA_DECRETO %} · {{ datos_laborales.FECHA_DECRETO|date:"d/m/Y" }}{% endif %}</p>
             <p><strong>Resolución:</strong> {{ datos_laborales.NUMERO_RESOLUCION|default:'-' }}{% if datos_laborales.FECHA_RESOLUCION %} · {{ datos_laborales.FECHA_RESOLUCION|date:"d/m/Y" }}{% endif %}</p>
             <p><strong>D.G.R.P.:</strong> {{ extra.NUMERO_DGRP|default:'-' }}{% if extra.FECHA_DGRP %} · {{ extra.FECHA_DGRP }}{% endif %}</p>
+<<<<<<< HEAD
             <p><strong>Salario:</strong> {% if datos_laborales.SALARIO %}Gs. {{ datos_laborales.SALARIO|floatformat:0 }}{% else %}-{% endif %}</p>
             <p><strong>Fecha de ingreso:</strong> {{ datos_laborales.FECHA_INGRESO|date:"d/m/Y"|default:'-' }}</p>
             {% else %}<p class="text-muted">Sin datos laborales cargados.</p>{% endif %}
         </div></div>
     </div>
+=======
+            {% if datos_laborales.TIPO_VINCULO == 'COMISIONADO' %}
+            <div class="alert alert-info py-2">
+                <div class="fw-semibold mb-1">Datos de comisión</div>
+                <p class="mb-1"><strong>Institución de destino:</strong> {{ datos_laborales.INSTITUCION_DESTINO_COMISION|default:'-' }}</p>
+                <p class="mb-1"><strong>Resolución/autorización:</strong> {{ datos_laborales.NUMERO_RESOLUCION_COMISION|default:'-' }}</p>
+                <p class="mb-1"><strong>Periodo:</strong> {{ datos_laborales.periodo_comision|default:'-' }}</p>
+                {% if datos_laborales.OBSERVACION_COMISION %}<p class="mb-0"><strong>Observación:</strong> {{ datos_laborales.OBSERVACION_COMISION }}</p>{% endif %}
+            </div>
+            {% endif %}
+            <p><strong>Salario:</strong> {% if datos_laborales.SALARIO %}Gs. {{ datos_laborales.SALARIO|floatformat:0 }}{% else %}-{% endif %}</p>
+            <p><strong>Fecha de ingreso:</strong> {{ datos_laborales.FECHA_INGRESO|date:"d/m/Y"|default:'-' }}</p>
+            <p><strong>Antigüedad institución de origen:</strong> {{ persona.antiguedad_origen|default:'-' }}</p>
+            <p><strong>Antigüedad RUN:</strong> {{ persona.antiguedad_run|default:'-' }}</p>
+            {% else %}<p class="text-muted">Sin datos laborales cargados.</p>{% endif %}
+        </div></div>
+    </div>
+
+    <div class="col-12">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-secondary text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <span><i class="bi bi-person-badge"></i> Interinatos</span>
+                {% if user.puede_acceder_panel_rrhh %}
+                <a href="{% url 'interinato-create' persona.id %}" class="btn btn-sm btn-light">
+                    <i class="bi bi-plus-circle"></i> Agregar interinato
+                </a>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if interinatos %}
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Cargo interino</th>
+                                <th>Dependencia</th>
+                                <th>Resolución</th>
+                                <th>Periodo</th>
+                                <th>Estado</th>
+                                <th>PDF</th>
+                                {% if user.puede_acceder_panel_rrhh %}<th class="text-end">Acciones</th>{% endif %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for interinato in interinatos %}
+                            <tr>
+                                <td><strong>{{ interinato.cargo_interino }}</strong>{% if interinato.observacion %}<div class="small text-muted">{{ interinato.observacion }}</div>{% endif %}</td>
+                                <td>{{ interinato.dependencia|default:'-' }}</td>
+                                <td>{{ interinato.numero_resolucion }}{% if interinato.fecha_resolucion %}<div class="small text-muted">{{ interinato.fecha_resolucion|date:"d/m/Y" }}</div>{% endif %}</td>
+                                <td>{{ interinato.fecha_inicio|date:"d/m/Y" }} al {{ interinato.fecha_fin|date:"d/m/Y" }}</td>
+                                <td><span class="badge bg-{{ interinato.estado_badge }}">{{ interinato.estado_display }}</span></td>
+                                <td><a href="{{ interinato.archivo_resolucion.url }}" target="_blank" class="btn btn-sm btn-outline-danger"><i class="bi bi-file-earmark-pdf"></i> Ver</a></td>
+                                {% if user.puede_acceder_panel_rrhh %}
+                                <td class="text-end">
+                                    <a href="{% url 'interinato-update' interinato.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="bi bi-pencil"></i></a>
+                                    <a href="{% url 'interinato-delete' interinato.id %}" class="btn btn-sm btn-outline-danger" title="Eliminar"><i class="bi bi-trash"></i></a>
+                                </td>
+                                {% endif %}
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <p class="text-muted mb-0">No registra interinatos cargados.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+>>>>>>> 3eb7f368f6bde66b9883d82e8fe5fc069e4bc6d0
     <div class="col-lg-6">
         <div class="card h-100"><div class="card-header bg-success text-white">Datos académicos</div><div class="card-body">
             <p><strong>Nivel primario:</strong> {% if extra.NIVEL_PRIMARIO %}Sí{% else %}No{% endif %}</p>

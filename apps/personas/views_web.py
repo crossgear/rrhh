@@ -3,6 +3,12 @@ from django.views.generic import ListView, DetailView, TemplateView
 from django.views import View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.shortcuts import render, redirect, get_object_or_404
+from django.http import HttpResponse
+import csv
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.utils import get_column_letter
 from django.urls import reverse_lazy
 from django.contrib import messages
 from django.db.models import Q
@@ -15,6 +21,7 @@ from .forms import FichaPersonalForm
 from apps.laboral.models import DatosLaborales
 from apps.academico.models import DatosAcademicos
 from apps.ubicacion.models import Domicilio
+from apps.auditoria.utils import registrar_auditoria
 
 
 def build_static_map_url(lat, lng):
@@ -29,6 +36,32 @@ def build_static_map_url(lat, lng):
     return ''
 
 
+
+
+
+def persona_snapshot(persona):
+    if not persona:
+        return {}
+    dl = getattr(persona, 'datos_laborales', None)
+    extra = persona.FICHA_EXTRA or {}
+    return {
+        'ci_numero': persona.CI_NUMERO,
+        'nombres': persona.NOMBRES,
+        'apellidos': persona.APELLIDOS,
+        'telefono': persona.TELEFONO,
+        'email': persona.EMAIL,
+        'activo': persona.ACTIVO,
+        'celular': extra.get('CELULAR', ''),
+        'ciudad': extra.get('CIUDAD', ''),
+        'barrio': extra.get('BARRIO', ''),
+        'domicilio_actual': extra.get('DOMICILIO_ACTUAL', ''),
+        'tipo_vinculo': getattr(dl, 'TIPO_VINCULO', ''),
+        'institucion_origen': getattr(dl, 'INSTITUCION_ORIGEN', ''),
+        'cargo': getattr(dl, 'CARGO', ''),
+        'dependencia': getattr(dl, 'DEPENDENCIA', ''),
+        'salario': str(getattr(dl, 'SALARIO', '') or ''),
+        'fecha_ingreso': getattr(dl, 'FECHA_INGRESO', None).isoformat() if getattr(dl, 'FECHA_INGRESO', None) else '',
+    }
 
 def get_persona_for_user(user):
     """Obtiene la ficha vinculada al usuario; si no existe, intenta vincularla por CI o username."""
@@ -50,7 +83,7 @@ def get_persona_for_user(user):
 
 class RRHHRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
-        return self.request.user.is_authenticated and self.request.user.es_rrhh
+        return self.request.user.is_authenticated and self.request.user.puede_acceder_panel_rrhh
 
     def handle_no_permission(self):
         if self.request.user.is_authenticated:
@@ -112,6 +145,11 @@ class PersonaFormMixin:
             'NUMERO_DGRP': cd.get('NUMERO_DGRP', ''),
             'FECHA_DGRP': cd.get('FECHA_DGRP').isoformat() if cd.get('FECHA_DGRP') else '',
             'CATEGORIA': cd.get('CATEGORIA', ''),
+            'INSTITUCION_DESTINO_COMISION': cd.get('INSTITUCION_DESTINO_COMISION', ''),
+            'NUMERO_RESOLUCION_COMISION': cd.get('NUMERO_RESOLUCION_COMISION', ''),
+            'FECHA_INICIO_COMISION': cd.get('FECHA_INICIO_COMISION').isoformat() if cd.get('FECHA_INICIO_COMISION') else '',
+            'FECHA_FIN_COMISION': cd.get('FECHA_FIN_COMISION').isoformat() if cd.get('FECHA_FIN_COMISION') else '',
+            'OBSERVACION_COMISION': cd.get('OBSERVACION_COMISION', ''),
             'NIVEL_PRIMARIO': cd.get('NIVEL_PRIMARIO', False),
             'NIVEL_SECUNDARIO': cd.get('NIVEL_SECUNDARIO', False),
             'NIVEL_UNIVERSITARIO': cd.get('NIVEL_UNIVERSITARIO', False),
@@ -147,13 +185,19 @@ class PersonaFormMixin:
             domicilio.LONGITUD = cd.get('LONGITUD') or None
             domicilio.save()
 
-        if any(cd.get(k) for k in ['TIPO_VINCULO', 'CARGO', 'LUGAR_TRABAJO', 'SALARIO', 'FECHA_INGRESO', 'NUMERO_DECRETO', 'NUMERO_RESOLUCION', 'NUMERO_DGRP', 'FECHA_DGRP']):
+        if any(cd.get(k) for k in ['TIPO_VINCULO', 'INSTITUCION_ORIGEN', 'CARGO', 'LUGAR_TRABAJO', 'SALARIO', 'FECHA_INGRESO', 'NUMERO_DECRETO', 'NUMERO_RESOLUCION', 'NUMERO_DGRP', 'FECHA_DGRP', 'INSTITUCION_DESTINO_COMISION', 'NUMERO_RESOLUCION_COMISION', 'FECHA_INICIO_COMISION', 'FECHA_FIN_COMISION', 'OBSERVACION_COMISION']):
             dl, _ = DatosLaborales.objects.get_or_create(persona=persona)
             dl.TIPO_VINCULO = cd.get('TIPO_VINCULO') or 'OTRO'
+            dl.INSTITUCION_ORIGEN = cd.get('INSTITUCION_ORIGEN') or 'RUN'
             dl.NUMERO_DECRETO = cd.get('NUMERO_DECRETO', '')
             dl.FECHA_DECRETO = cd.get('FECHA_DECRETO')
             dl.NUMERO_RESOLUCION = cd.get('NUMERO_RESOLUCION', '')
             dl.FECHA_RESOLUCION = cd.get('FECHA_RESOLUCION')
+            dl.INSTITUCION_DESTINO_COMISION = cd.get('INSTITUCION_DESTINO_COMISION', '')
+            dl.NUMERO_RESOLUCION_COMISION = cd.get('NUMERO_RESOLUCION_COMISION', '')
+            dl.FECHA_INICIO_COMISION = cd.get('FECHA_INICIO_COMISION')
+            dl.FECHA_FIN_COMISION = cd.get('FECHA_FIN_COMISION')
+            dl.OBSERVACION_COMISION = cd.get('OBSERVACION_COMISION', '')
             dl.CARGO = cd.get('CARGO', '')
             dl.DEPENDENCIA = cd.get('LUGAR_TRABAJO', '')
             dl.SALARIO = cd.get('SALARIO')
@@ -194,7 +238,7 @@ class PersonaListView(RRHHRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        queryset = Persona.objects.select_related('USUARIO').all()
+        queryset = Persona.objects.select_related('USUARIO').select_related('datos_laborales').all()
         search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
@@ -212,12 +256,108 @@ class PersonaListView(RRHHRequiredMixin, ListView):
             queryset = queryset.filter(ACTIVO=True)
         elif activo == 'false':
             queryset = queryset.filter(ACTIVO=False)
+
+        tipo_vinculo = self.request.GET.get('TIPO_VINCULO')
+        if tipo_vinculo:
+            queryset = queryset.filter(datos_laborales__TIPO_VINCULO=tipo_vinculo)
+
+        institucion_origen = self.request.GET.get('INSTITUCION_ORIGEN')
+        if institucion_origen:
+            queryset = queryset.filter(datos_laborales__INSTITUCION_ORIGEN=institucion_origen)
+
         return queryset.order_by('APELLIDOS', 'NOMBRES')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['estado_civil_choices'] = Persona.ESTADO_CIVIL_CHOICES
+        context['tipo_vinculo_choices'] = DatosLaborales.TIPO_VINCULO_CHOICES
+        context['institucion_origen_choices'] = DatosLaborales.INSTITUCION_ORIGEN_CHOICES
         return context
+
+    def render_to_response(self, context, **response_kwargs):
+        export_type = self.request.GET.get('export')
+        if export_type == 'csv':
+            response = HttpResponse(content_type='text/csv; charset=utf-8')
+            response['Content-Disposition'] = 'attachment; filename="funcionarios.csv"'
+            response.write('﻿')
+            writer = csv.writer(response, delimiter=';')
+            writer.writerow(['CI', 'Nombre completo', 'F. Nacimiento', 'Edad', 'Estado civil', 'Teléfono', 'Estado', 'Vínculo', 'Institución de origen', 'Categoría', 'Antigüedad institución de origen', 'Antigüedad RUN'])
+            for persona in context['object_list']:
+                dl = getattr(persona, 'datos_laborales', None)
+                extra = persona.FICHA_EXTRA or {}
+                writer.writerow([
+                    persona.CI_NUMERO,
+                    persona.nombre_completo,
+                    persona.FECHA_NACIMIENTO.strftime('%d/%m/%Y') if persona.FECHA_NACIMIENTO else '',
+                    persona.edad or '',
+                    persona.get_ESTADO_CIVIL_display(),
+                    persona.TELEFONO or '-',
+                    'Activo' if persona.ACTIVO else 'Inactivo',
+                    dl.get_TIPO_VINCULO_display() if dl else '-',
+                    dl.institucion_origen_label if dl else '-',
+                    extra.get('CATEGORIA', '') or '-',
+                    persona.antiguedad_origen or '-',
+                    persona.antiguedad_run or '-',
+                ])
+            return response
+
+        if export_type == 'xlsx':
+            wb = Workbook()
+            ws = wb.active
+            ws.title = 'Funcionarios'
+
+            headers = ['CI', 'Nombre completo', 'F. Nacimiento', 'Edad', 'Estado civil', 'Teléfono', 'Estado', 'Vínculo', 'Institución de origen', 'Categoría', 'Antigüedad institución de origen', 'Antigüedad RUN']
+            ws.append(headers)
+
+            header_fill = PatternFill(fill_type='solid', fgColor='1F6FEB')
+            header_font = Font(color='FFFFFF', bold=True)
+            for col_num, header in enumerate(headers, 1):
+                cell = ws.cell(row=1, column=col_num)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center')
+
+            for persona in context['object_list']:
+                dl = getattr(persona, 'datos_laborales', None)
+                extra = persona.FICHA_EXTRA or {}
+                ws.append([
+                    persona.CI_NUMERO,
+                    persona.nombre_completo,
+                    persona.FECHA_NACIMIENTO.strftime('%d/%m/%Y') if persona.FECHA_NACIMIENTO else '',
+                    persona.edad or '',
+                    persona.get_ESTADO_CIVIL_display(),
+                    persona.TELEFONO or '-',
+                    'Activo' if persona.ACTIVO else 'Inactivo',
+                    dl.get_TIPO_VINCULO_display() if dl else '-',
+                    dl.institucion_origen_label if dl else '-',
+                    extra.get('CATEGORIA', '') or '-',
+                    persona.antiguedad_origen or '-',
+                    persona.antiguedad_run or '-',
+                ])
+
+            for column_cells in ws.columns:
+                max_length = 0
+                col_letter = get_column_letter(column_cells[0].column)
+                for cell in column_cells:
+                    try:
+                        value = str(cell.value or '')
+                    except Exception:
+                        value = ''
+                    max_length = max(max_length, len(value))
+                ws.column_dimensions[col_letter].width = min(max_length + 2, 35)
+
+            output = BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            response = HttpResponse(
+                output.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            response['Content-Disposition'] = 'attachment; filename="funcionarios.xlsx"'
+            return response
+
+        return super().render_to_response(context, **response_kwargs)
 
 
 class PersonaContextMixin:
@@ -228,7 +368,10 @@ class PersonaContextMixin:
         context['observaciones'] = persona.observaciones.all()[:10] if hasattr(persona, 'observaciones') else []
         context['datos_laborales'] = getattr(persona, 'datos_laborales', None)
         context['datos_academicos'] = getattr(persona, 'datos_academicos', None)
+        context['interinatos'] = persona.interinatos.select_related('creado_por').all() if hasattr(persona, 'interinatos') else []
         return context
+
+
 
 
 class PersonaDetailView(RRHHRequiredMixin, PersonaContextMixin, DetailView):
@@ -250,7 +393,7 @@ class PersonaPrintView(LoginRequiredMixin, PersonaContextMixin, DetailView):
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
-        if request.user.es_rrhh:
+        if request.user.puede_acceder_panel_rrhh:
             return super().dispatch(request, *args, **kwargs)
         own = get_persona_for_user(request.user)
         if not own or own.pk != self.object.pk:
@@ -274,6 +417,15 @@ class PersonaCreateView(RRHHRequiredMixin, PersonaFormMixin, View):
         form = FichaPersonalForm(request.POST, request.FILES)
         if form.is_valid():
             persona = self._save_form(form)
+            registrar_auditoria(
+                usuario=request.user,
+                accion='CREAR',
+                modelo='Persona',
+                objeto_id=persona.pk,
+                objeto_repr=persona.nombre_completo,
+                descripcion=f'Creó la ficha de {persona.nombre_completo}.',
+                despues=persona_snapshot(persona),
+            )
             messages.success(request, 'Ficha personal creada exitosamente.')
             return redirect('persona-detail', pk=persona.pk)
         messages.error(request, 'Verificá los datos cargados.')
@@ -292,7 +444,18 @@ class PersonaUpdateView(RRHHRequiredMixin, PersonaFormMixin, View):
         persona = get_object_or_404(Persona, pk=pk)
         form = FichaPersonalForm(request.POST, request.FILES, persona=persona)
         if form.is_valid():
+            datos_antes = persona_snapshot(persona)
             persona = self._save_form(form, instance=persona, usuario=persona.USUARIO)
+            registrar_auditoria(
+                usuario=request.user,
+                accion='EDITAR',
+                modelo='Persona',
+                objeto_id=persona.pk,
+                objeto_repr=persona.nombre_completo,
+                descripcion=f'Editó la ficha de {persona.nombre_completo}.',
+                antes=datos_antes,
+                despues=persona_snapshot(persona),
+            )
             messages.success(request, 'Ficha personal actualizada exitosamente.')
             return redirect('persona-detail', pk=persona.pk)
         messages.error(request, 'Verificá los datos cargados.')
@@ -303,6 +466,16 @@ class PersonaDeleteView(RRHHRequiredMixin, View):
     def post(self, request, pk):
         persona = get_object_or_404(Persona, pk=pk)
         nombre = persona.nombre_completo if hasattr(persona, 'nombre_completo') else f"{persona.NOMBRES} {persona.APELLIDOS}".strip()
+        datos_antes = persona_snapshot(persona)
+        registrar_auditoria(
+            usuario=request.user,
+            accion='ELIMINAR',
+            modelo='Persona',
+            objeto_id=persona.pk,
+            objeto_repr=nombre,
+            descripcion=f'Eliminó la ficha de {nombre}.',
+            antes=datos_antes,
+        )
         persona.delete()
         messages.success(request, f'Registro eliminado correctamente: {nombre}.')
         return redirect('persona-list')
@@ -339,7 +512,20 @@ class MiFichaUpdateView(LoginRequiredMixin, PersonaFormMixin, View):
         persona = get_persona_for_user(request.user)
         form = FichaPersonalForm(request.POST, request.FILES, persona=persona)
         if form.is_valid():
+            datos_antes = persona_snapshot(persona) if persona else {}
             persona = self._save_form(form, instance=persona, usuario=request.user)
+            accion = 'EDITAR' if datos_antes else 'CREAR'
+            descripcion = 'Actualizó su ficha personal.' if datos_antes else 'Completó su ficha personal.'
+            registrar_auditoria(
+                usuario=request.user,
+                accion=accion,
+                modelo='Persona',
+                objeto_id=persona.pk,
+                objeto_repr=persona.nombre_completo,
+                descripcion=descripcion,
+                antes=datos_antes or None,
+                despues=persona_snapshot(persona),
+            )
             messages.success(request, 'Tus datos fueron guardados correctamente.')
             return redirect('mi-ficha')
         messages.error(request, 'Verificá los datos cargados.')

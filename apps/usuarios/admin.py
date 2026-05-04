@@ -46,3 +46,13 @@ class UsuarioAdmin(UserAdmin):
     )
 
     readonly_fields = ('date_joined', 'last_login')
+
+from apps.usuarios.models_admin import UsuarioAdministradorRRHH
+
+
+@admin.register(UsuarioAdministradorRRHH)
+class UsuarioAdministradorRRHHAdmin(admin.ModelAdmin):
+    list_display = ('username', 'activo', 'creado_por', 'fecha_creacion')
+    list_filter = ('activo', 'fecha_creacion')
+    search_fields = ('username',)
+    readonly_fields = ('fecha_creacion',)

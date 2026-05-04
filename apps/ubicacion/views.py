@@ -105,10 +105,36 @@ class MapaViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         """
+<<<<<<< HEAD
         Permite filtrar por ciudad desde query params.
         """
         queryset = super().get_queryset().filter(UBICACION__isnull=False)
         ciudad = self.request.query_params.get('CIUDAD')
         if ciudad:
             queryset = queryset.filter(CIUDAD__iexact=ciudad)
+=======
+        Permite filtrar por ciudad, estado y tipo de vínculo desde query params.
+        """
+        queryset = (
+            super()
+            .get_queryset()
+            .filter(UBICACION__isnull=False)
+            .select_related('persona', 'persona__datos_laborales')
+        )
+
+        ciudad = self.request.query_params.get('CIUDAD')
+        if ciudad:
+            queryset = queryset.filter(CIUDAD__iexact=ciudad)
+
+        activo = self.request.query_params.get('ACTIVO')
+        if activo == 'true':
+            queryset = queryset.filter(persona__ACTIVO=True)
+        elif activo == 'false':
+            queryset = queryset.filter(persona__ACTIVO=False)
+
+        tipo = self.request.query_params.get('TIPO_VINCULO')
+        if tipo:
+            queryset = queryset.filter(persona__datos_laborales__TIPO_VINCULO=tipo)
+
+>>>>>>> 3eb7f368f6bde66b9883d82e8fe5fc069e4bc6d0
         return queryset

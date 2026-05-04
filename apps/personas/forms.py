@@ -33,10 +33,16 @@ class FichaPersonalForm(forms.Form):
 
     # Datos laborales
     TIPO_VINCULO = forms.ChoiceField(label='Tipo de vínculo', choices=DatosLaborales.TIPO_VINCULO_CHOICES, required=False)
+    INSTITUCION_ORIGEN = forms.ChoiceField(label='Institución de origen', choices=DatosLaborales.INSTITUCION_ORIGEN_CHOICES, required=False)
     NUMERO_DECRETO = forms.CharField(label='Decreto N°', max_length=50, required=False)
     FECHA_DECRETO = forms.DateField(label='Fecha decreto', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     NUMERO_RESOLUCION = forms.CharField(label='Resolución N°', max_length=50, required=False)
     FECHA_RESOLUCION = forms.DateField(label='Fecha resolución', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    INSTITUCION_DESTINO_COMISION = forms.CharField(label='Institución de origen del comisionado', max_length=150, required=False, help_text='Entidad pública donde el funcionario fue nombrado o contratado originalmente.')
+    NUMERO_RESOLUCION_COMISION = forms.CharField(label='Resolución / autorización N°', max_length=50, required=False)
+    FECHA_INICIO_COMISION = forms.DateField(label='Inicio comisión', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    FECHA_FIN_COMISION = forms.DateField(label='Fin comisión', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
+    OBSERVACION_COMISION = forms.CharField(label='Observación comisión', required=False, widget=forms.Textarea(attrs={'rows': 2}))
     NUMERO_DGRP = forms.CharField(label='D.G.R.P. N°', max_length=50, required=False)
     FECHA_DGRP = forms.DateField(label='Fecha D.G.R.P.', required=False, widget=forms.DateInput(attrs={'type': 'date'}))
     CARGO = forms.CharField(label='Cargo', max_length=150, required=False)
@@ -150,6 +156,11 @@ class FichaPersonalForm(forms.Form):
             'NUMERO_DGRP': extra.get('NUMERO_DGRP', ''),
             'FECHA_DGRP': extra.get('FECHA_DGRP', ''),
             'CATEGORIA': extra.get('CATEGORIA', ''),
+            'INSTITUCION_DESTINO_COMISION': extra.get('INSTITUCION_DESTINO_COMISION', ''),
+            'NUMERO_RESOLUCION_COMISION': extra.get('NUMERO_RESOLUCION_COMISION', ''),
+            'FECHA_INICIO_COMISION': extra.get('FECHA_INICIO_COMISION', ''),
+            'FECHA_FIN_COMISION': extra.get('FECHA_FIN_COMISION', ''),
+            'OBSERVACION_COMISION': extra.get('OBSERVACION_COMISION', ''),
         })
 
         try:
@@ -169,6 +180,7 @@ class FichaPersonalForm(forms.Form):
             dl = persona.datos_laborales
             self.initial.update({
                 'TIPO_VINCULO': dl.TIPO_VINCULO,
+                'INSTITUCION_ORIGEN': getattr(dl, 'INSTITUCION_ORIGEN', 'RUN'),
                 'NUMERO_DECRETO': dl.NUMERO_DECRETO,
                 'FECHA_DECRETO': dl.FECHA_DECRETO,
                 'NUMERO_RESOLUCION': dl.NUMERO_RESOLUCION,
@@ -177,6 +189,11 @@ class FichaPersonalForm(forms.Form):
                 'SALARIO': dl.SALARIO,
                 'FECHA_INGRESO': dl.FECHA_INGRESO,
                 'LUGAR_TRABAJO': dl.DEPENDENCIA,
+                'INSTITUCION_DESTINO_COMISION': getattr(dl, 'INSTITUCION_DESTINO_COMISION', ''),
+                'NUMERO_RESOLUCION_COMISION': getattr(dl, 'NUMERO_RESOLUCION_COMISION', ''),
+                'FECHA_INICIO_COMISION': getattr(dl, 'FECHA_INICIO_COMISION', None),
+                'FECHA_FIN_COMISION': getattr(dl, 'FECHA_FIN_COMISION', None),
+                'OBSERVACION_COMISION': getattr(dl, 'OBSERVACION_COMISION', ''),
             })
         except Exception:
             pass
@@ -218,16 +235,59 @@ class FichaPersonalForm(forms.Form):
             cleaned_data['FECHA_RESOLUCION'] = None
             cleaned_data['NUMERO_DGRP'] = ''
             cleaned_data['FECHA_DGRP'] = None
+            cleaned_data['INSTITUCION_DESTINO_COMISION'] = ''
+            cleaned_data['NUMERO_RESOLUCION_COMISION'] = ''
+            cleaned_data['FECHA_INICIO_COMISION'] = None
+            cleaned_data['FECHA_FIN_COMISION'] = None
+            cleaned_data['OBSERVACION_COMISION'] = ''
         elif tipo == 'CONTRATADO':
             cleaned_data['NUMERO_DECRETO'] = ''
             cleaned_data['FECHA_DECRETO'] = None
             cleaned_data['NUMERO_DGRP'] = ''
             cleaned_data['FECHA_DGRP'] = None
+            cleaned_data['INSTITUCION_DESTINO_COMISION'] = ''
+            cleaned_data['NUMERO_RESOLUCION_COMISION'] = ''
+            cleaned_data['FECHA_INICIO_COMISION'] = None
+            cleaned_data['FECHA_FIN_COMISION'] = None
+            cleaned_data['OBSERVACION_COMISION'] = ''
+        elif tipo == 'COMISIONADO':
+            cleaned_data['NUMERO_DECRETO'] = ''
+            cleaned_data['FECHA_DECRETO'] = None
+            cleaned_data['NUMERO_RESOLUCION'] = ''
+            cleaned_data['FECHA_RESOLUCION'] = None
+            cleaned_data['NUMERO_DGRP'] = ''
+            cleaned_data['FECHA_DGRP'] = None
+
+            institucion_origen = cleaned_data.get('INSTITUCION_ORIGEN')
+            origen_comision = (cleaned_data.get('INSTITUCION_DESTINO_COMISION') or '').strip()
+            inicio = cleaned_data.get('FECHA_INICIO_COMISION')
+            fin = cleaned_data.get('FECHA_FIN_COMISION')
+
+            if not institucion_origen:
+                self.add_error('INSTITUCION_ORIGEN', 'Seleccioná la institución de origen del funcionario comisionado.')
+            elif institucion_origen == 'RUN':
+                self.add_error('INSTITUCION_ORIGEN', 'Para un funcionario comisionado, la institución de origen no puede ser RUN. Seleccioná MEF, DGRP, DAG u Otra institución.')
+
+            if not origen_comision:
+                self.add_error('INSTITUCION_DESTINO_COMISION', 'Indicá la institución de origen real del funcionario comisionado.')
+            if not cleaned_data.get('NUMERO_RESOLUCION_COMISION'):
+                self.add_error('NUMERO_RESOLUCION_COMISION', 'Indicá el número de resolución o autorización de comisión.')
+            if not inicio:
+                self.add_error('FECHA_INICIO_COMISION', 'Indicá la fecha de inicio de comisión.')
+            if not fin:
+                self.add_error('FECHA_FIN_COMISION', 'Indicá la fecha fin de comisión. La comisión debe ser temporal.')
+            if inicio and fin and fin < inicio:
+                self.add_error('FECHA_FIN_COMISION', 'La fecha fin de comisión no puede ser menor a la fecha inicio.')
         elif tipo in ('PASANTIA', 'PRACTICANTE'):
             cleaned_data['NUMERO_DECRETO'] = ''
             cleaned_data['FECHA_DECRETO'] = None
             cleaned_data['NUMERO_RESOLUCION'] = ''
             cleaned_data['FECHA_RESOLUCION'] = None
+            cleaned_data['INSTITUCION_DESTINO_COMISION'] = ''
+            cleaned_data['NUMERO_RESOLUCION_COMISION'] = ''
+            cleaned_data['FECHA_INICIO_COMISION'] = None
+            cleaned_data['FECHA_FIN_COMISION'] = None
+            cleaned_data['OBSERVACION_COMISION'] = ''
         else:
             cleaned_data['NUMERO_DECRETO'] = ''
             cleaned_data['FECHA_DECRETO'] = None
@@ -235,6 +295,11 @@ class FichaPersonalForm(forms.Form):
             cleaned_data['FECHA_RESOLUCION'] = None
             cleaned_data['NUMERO_DGRP'] = ''
             cleaned_data['FECHA_DGRP'] = None
+            cleaned_data['INSTITUCION_DESTINO_COMISION'] = ''
+            cleaned_data['NUMERO_RESOLUCION_COMISION'] = ''
+            cleaned_data['FECHA_INICIO_COMISION'] = None
+            cleaned_data['FECHA_FIN_COMISION'] = None
+            cleaned_data['OBSERVACION_COMISION'] = ''
 
         return cleaned_data
 

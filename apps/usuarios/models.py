@@ -51,8 +51,35 @@ class Usuario(AbstractUser):
         """Verifica si el usuario es administrador."""
         return self.ROL == self.Rol.ADMIN
 
+    @property
+    def username_normalized(self):
+        return (self.username or '').strip().lower()
+
+    @property
+    def es_admin_rrhh(self):
+        """Administrador funcional RRHH gestionado desde el sistema."""
+        if self.is_superuser:
+            return True
+        from .models_admin import UsuarioAdministradorRRHH
+        return UsuarioAdministradorRRHH.objects.filter(
+            username=self.username_normalized,
+            activo=True,
+        ).exists()
+
+    @property
+    def puede_acceder_panel_rrhh(self):
+        return self.es_rrhh or self.es_admin_rrhh
+
+    @property
+    def mostrar_menu_admin(self):
+        return self.is_authenticated and self.es_rrhh and not self.es_admin_rrhh
+
     def save(self, *args, **kwargs):
         """Asegurar que los superusuarios tengan rol ADMIN."""
         if self.is_superuser:
             self.ROL = self.Rol.ADMIN
         super().save(*args, **kwargs)
+
+
+# Importa el modelo para que Django lo registre en la app usuarios.
+from .models_admin import UsuarioAdministradorRRHH  # noqa: E402,F401

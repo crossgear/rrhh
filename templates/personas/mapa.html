@@ -54,6 +54,16 @@
             </select>
         </div>
         <div class="mb-3">
+            <label class="form-label small">Tipo de vínculo</label>
+            <select id="filter-vinculo" class="form-select form-select-sm">
+                <option value="">Todos</option>
+                <option value="NOMBRADO">Nombrados</option>
+                <option value="CONTRATADO">Contratados</option>
+                <option value="PASANTIA">Pasantía</option>
+                <option value="PRACTICANTE">Practicante</option>
+            </select>
+        </div>
+        <div class="mb-3">
             <label class="form-label small">Estado</label>
             <select id="filter-activo" class="form-select form-select-sm">
                 <option value="">Todos</option>
@@ -99,7 +109,10 @@ document.addEventListener('DOMContentLoaded', function() {
             params.append('CIUDAD', currentFilters.CIUDAD);
         }
         if (currentFilters.ACTIVO !== undefined) {
-            // Necesitamos filtrar por activo en el backend
+            params.append('ACTIVO', currentFilters.ACTIVO);
+        }
+        if (currentFilters.TIPO_VINCULO) {
+            params.append('TIPO_VINCULO', currentFilters.TIPO_VINCULO);
         }
 
         const url = `/api/ubicacion/mapa/${params.toString() ? '?' + params.toString() : ''}`;
@@ -157,7 +170,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <strong>CI:</strong> ${props.persona_ci}<br>
                                     <strong>Dirección:</strong> ${props.DIRECCION}<br>
                                     ${props.BARRIO ? '<strong>Barrio:</strong> ' + props.BARRIO + '<br>' : ''}
-                                    <strong>Ciudad:</strong> ${props.CIUDAD}
+                                    <strong>Ciudad:</strong> ${props.CIUDAD}<br>
+                                    ${props.persona_tipo_vinculo ? '<strong>Vínculo:</strong> ' + props.persona_tipo_vinculo + '<br>' : ''}
+                                    ${props.persona_institucion_origen ? '<strong>Institución de origen:</strong> ' + props.persona_institucion_origen + '<br>' : ''}${props.persona_antiguedad ? '<strong>Antigüedad:</strong> ' + props.persona_antiguedad : ''}
                                 </div>
                                 <a href="/personas/${props.persona}/" class="btn btn-sm btn-primary w-100">Ver ficha</a>
                             </div>
@@ -193,10 +208,16 @@ document.addEventListener('DOMContentLoaded', function() {
         loadGeoJSON();
     });
 
+    document.getElementById('filter-vinculo').addEventListener('change', function() {
+        currentFilters.TIPO_VINCULO = this.value || undefined;
+        loadGeoJSON();
+    });
+
     document.getElementById('reset-filters').addEventListener('click', function() {
         currentFilters = {};
         document.getElementById('filter-city').value = '';
         document.getElementById('filter-activo').value = '';
+        document.getElementById('filter-vinculo').value = '';
         loadGeoJSON();
     });
 

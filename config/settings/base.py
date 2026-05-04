@@ -51,6 +51,8 @@ INSTALLED_APPS = [
     'apps.familiares',
     'apps.observaciones',
     'apps.dashboard',
+    'apps.auditoria',
+    'apps.interinatos',
 ]
 
 MIDDLEWARE = [
@@ -61,6 +63,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'apps.usuarios.middleware.AdminMenuHiddenUsersBlockAdminMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -101,7 +104,7 @@ DATABASES = {
         'USER': os.getenv('DB_USER', 'postgres'),
         'PASSWORD': os.getenv('DB_PASSWORD', 'postgres123'),
         'HOST': os.getenv('DB_HOST', 'localhost'),
-        'PORT': os.getenv('DB_PORT', '5433'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
@@ -155,7 +158,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'app' / 'staticfiles'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
 # Media files
@@ -316,5 +319,15 @@ MESSAGE_TAGS = {
     messages.WARNING: 'alert-warning',
     messages.ERROR: 'alert-danger',
 }
+ADMIN_MENU_HIDDEN_USERNAMES = {
+    'soporte',
+    'christian-rodriguez',
+    'jose-rojas',
+    'celeste-cristaldo',
+    'david-pereira',
+    'griselda-acosta',
+    'anastacio-torres',
+    'victor-gimenez',
+}
 
-CSRF_TRUSTED_ORIGINS = ["http://192.168.1.230:90"]
+RRHH_PANEL_USERNAMES = ADMIN_MENU_HIDDEN_USERNAMES

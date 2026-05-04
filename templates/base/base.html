@@ -18,6 +18,7 @@
 
         html, body { margin: 0; padding: 0; min-height: 100%; }
         body { font-family: 'Roboto', sans-serif; padding-top: var(--navbar-height); background-color: #f4f6f9; }
+        @media (min-width: 992px) { body { zoom: 0.85; } }
         .navbar.fixed-top { min-height: var(--navbar-height); z-index: 1100; box-shadow: 0 .125rem .25rem rgba(0,0,0,.075); }
         .has-sidebar #sidebar { width: var(--sidebar-width); min-height: calc(100vh - var(--navbar-height)); position: fixed; left: 0; top: var(--navbar-height); z-index: 1000; overflow-y: auto; }
         .has-sidebar #content { margin-left: var(--sidebar-width); width: calc(100% - var(--sidebar-width)); }
@@ -113,10 +114,10 @@
 
     {% block extra_css %}{% endblock %}
 </head>
-<body class="{% if user.is_authenticated and user.es_rrhh %}has-sidebar{% endif %}">
+<body class="{% if user.is_authenticated and user.puede_acceder_panel_rrhh %}has-sidebar{% endif %}">
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
         <div class="container-fluid">
-            <a class="navbar-brand" href="{% if user.is_authenticated and not user.es_rrhh %}{% url 'mi-ficha' %}{% else %}{% url 'dashboard-index' %}{% endif %}">
+            <a class="navbar-brand" href="{% if user.is_authenticated and not user.puede_acceder_panel_rrhh %}{% url 'mi-ficha' %}{% else %}{% url 'dashboard-index' %}{% endif %}">
                 <i class="bi bi-building"></i> Sistema RRHH
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
@@ -135,7 +136,7 @@
                         </a>
                         <ul class="dropdown-menu dropdown-menu-end">
                             {% if user.is_authenticated %}
-                                {% if user.es_rrhh %}
+                                {% if user.puede_acceder_panel_rrhh %}
                                 <li><a class="dropdown-item" href="{% url 'persona-list' %}"><i class="bi bi-people"></i> Fichas personales</a></li>
                                 {% else %}
                                 <li><a class="dropdown-item" href="{% url 'mi-ficha' %}"><i class="bi bi-person-vcard"></i> Mi ficha</a></li>
@@ -163,7 +164,7 @@
 
     <div class="container-fluid">
         <div class="row">
-            {% if user.is_authenticated and user.es_rrhh %}
+            {% if user.is_authenticated and user.puede_acceder_panel_rrhh %}
             <nav id="sidebar" class="col-lg-2 col-md-3 d-md-block bg-dark sidebar collapse">
                 <div class="position-sticky pt-3">
                     <ul class="nav flex-column">
@@ -183,16 +184,30 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link {% if '/auditoria/' in request.path %}active{% endif %}" href="{% url 'auditoria-list' %}">
+                                <i class="bi bi-shield-check"></i> Auditoría
+                            </a>
+                        </li>
+                        {% if user.es_admin_rrhh %}
+                        <li class="nav-item">
+                            <a class="nav-link {% if '/accounts/administradores/' in request.path %}active{% endif %}" href="{% url 'admin-rrhh-list' %}">
+                                <i class="bi bi-person-gear"></i> Administradores
+                            </a>
+                        </li>
+                        {% endif %}
+                        {% if user.mostrar_menu_admin %}
+                        <li class="nav-item">
                             <a class="nav-link" href="{% url 'admin:index' %}">
                                 <i class="bi bi-gear"></i> Admin
                             </a>
                         </li>
+                        {% endif %}
                     </ul>
                 </div>
             </nav>
             {% endif %}
 
-            <main id="content" class="{% if user.is_authenticated and user.es_rrhh %}col-md-9 ms-sm-auto col-lg-10{% else %}col-12{% endif %}">
+            <main id="content" class="{% if user.is_authenticated and user.puede_acceder_panel_rrhh %}col-md-9 ms-sm-auto col-lg-10{% else %}col-12{% endif %}">
                 {% if messages %}
     {% for message in messages %}
         {% if 'success' in message.tags %}
@@ -209,7 +224,7 @@
                     </div>
                     <div class="ficha-finalizacion__text">{{ message }}</div>
                     <div class="ficha-finalizacion__actions">
-                        <a href="{% if user.is_authenticated and not user.es_rrhh %}{% url 'mi-ficha' %}{% else %}{% url 'dashboard-index' %}{% endif %}" class="btn btn-outline-primary btn-sm">Ir al inicio</a>
+                        <a href="{% if user.is_authenticated and not user.puede_acceder_panel_rrhh %}{% url 'mi-ficha' %}{% else %}{% url 'dashboard-index' %}{% endif %}" class="btn btn-outline-primary btn-sm">Ir al inicio</a>
                         <form method="post" action="{% url 'logout' %}" class="m-0">
                             {% csrf_token %}
                             <button type="submit" class="btn btn-outline-secondary btn-sm">Salir</button>

@@ -13,6 +13,10 @@ class DomicilioSerializer(serializers.ModelSerializer):
     """
     persona_nombre = serializers.SerializerMethodField()
     persona_ci = serializers.SerializerMethodField()
+    persona_antiguedad = serializers.SerializerMethodField()
+    persona_institucion_origen = serializers.SerializerMethodField()
+    persona_tipo_vinculo = serializers.SerializerMethodField()
+    persona_activo = serializers.SerializerMethodField()
     lat_long = serializers.SerializerMethodField()
 
     class Meta:
@@ -23,6 +27,10 @@ class DomicilioSerializer(serializers.ModelSerializer):
             'persona_nombre',
             'persona_ci',
             'DIRECCION',
+            'persona_antiguedad',
+            'persona_institucion_origen',
+            'persona_tipo_vinculo',
+            'persona_activo',
             'BARRIO',
             'CIUDAD',
             'LATITUD',
@@ -38,6 +46,30 @@ class DomicilioSerializer(serializers.ModelSerializer):
 
     def get_persona_ci(self, obj):
         return obj.persona.CI_NUMERO
+
+    def get_persona_antiguedad(self, obj):
+        datos = getattr(obj.persona, 'datos_laborales', None)
+        if not datos:
+            return ''
+        origen = getattr(datos, 'antiguedad_origen', '')
+        run = getattr(datos, 'antiguedad_run', '')
+        partes = []
+        if origen:
+            partes.append(f"Origen: {origen}")
+        if run:
+            partes.append(f"RUN: {run}")
+        return ' | '.join(partes)
+
+    def get_persona_institucion_origen(self, obj):
+        datos = getattr(obj.persona, 'datos_laborales', None)
+        return getattr(datos, 'institucion_origen_label', '') if datos else ''
+
+    def get_persona_tipo_vinculo(self, obj):
+        datos = getattr(obj.persona, 'datos_laborales', None)
+        return getattr(datos, 'get_TIPO_VINCULO_display', lambda: '')() if datos else ''
+
+    def get_persona_activo(self, obj):
+        return bool(getattr(obj.persona, 'ACTIVO', False))
 
     def get_lat_long(self, obj):
         return obj.lat_long_str
@@ -71,6 +103,10 @@ class DomicilioGeoSerializer(GeoFeatureModelSerializer):
     """
     persona_nombre = serializers.SerializerMethodField()
     persona_ci = serializers.SerializerMethodField()
+    persona_antiguedad = serializers.SerializerMethodField()
+    persona_institucion_origen = serializers.SerializerMethodField()
+    persona_tipo_vinculo = serializers.SerializerMethodField()
+    persona_activo = serializers.SerializerMethodField()
 
     class Meta:
         model = Domicilio
@@ -81,6 +117,10 @@ class DomicilioGeoSerializer(GeoFeatureModelSerializer):
             'persona_nombre',
             'persona_ci',
             'DIRECCION',
+            'persona_antiguedad',
+            'persona_institucion_origen',
+            'persona_tipo_vinculo',
+            'persona_activo',
             'BARRIO',
             'CIUDAD',
             'ES_ACTUAL',
@@ -93,6 +133,30 @@ class DomicilioGeoSerializer(GeoFeatureModelSerializer):
 
     def get_persona_ci(self, obj):
         return obj.persona.CI_NUMERO
+
+    def get_persona_antiguedad(self, obj):
+        datos = getattr(obj.persona, 'datos_laborales', None)
+        if not datos:
+            return ''
+        origen = getattr(datos, 'antiguedad_origen', '')
+        run = getattr(datos, 'antiguedad_run', '')
+        partes = []
+        if origen:
+            partes.append(f"Origen: {origen}")
+        if run:
+            partes.append(f"RUN: {run}")
+        return ' | '.join(partes)
+
+    def get_persona_institucion_origen(self, obj):
+        datos = getattr(obj.persona, 'datos_laborales', None)
+        return getattr(datos, 'institucion_origen_label', '') if datos else ''
+
+    def get_persona_tipo_vinculo(self, obj):
+        datos = getattr(obj.persona, 'datos_laborales', None)
+        return getattr(datos, 'get_TIPO_VINCULO_display', lambda: '')() if datos else ''
+
+    def get_persona_activo(self, obj):
+        return bool(getattr(obj.persona, 'ACTIVO', False))
 
     def get_properties(self, obj, fields):
         """
@@ -121,6 +185,10 @@ class DomicilioCreateUpdateSerializer(serializers.ModelSerializer):
             'id',
             'persona',
             'DIRECCION',
+            'persona_antiguedad',
+            'persona_institucion_origen',
+            'persona_tipo_vinculo',
+            'persona_activo',
             'BARRIO',
             'CIUDAD',
             'LATITUD',
