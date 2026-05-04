@@ -10,7 +10,7 @@ django-extensions==3.2.3
 ipython==8.24.0
 
 # Django filters (búsqueda/filtrado)
-django-filter==23.5
+django-filter==24.2
 
 # Linting
 flake8==7.0.0

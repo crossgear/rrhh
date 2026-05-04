@@ -171,7 +171,7 @@ DB_NAME=rrhh_db
 DB_USER=postgres
 DB_PASSWORD=tu_contraseña
 DB_HOST=localhost
-DB_PORT=5432
+DB_PORT=5433
 GDAL_LIBRARY_PATH=/usr/lib/x86_64-linux-gnu/libgdal.so  # Ajustar para tu OS
 ```
 
